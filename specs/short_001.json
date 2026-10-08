@@ -1,0 +1,100 @@
+{
+  "id": "short_001",
+  "title": "EL MENSAJE QUE NADIE ESPERABA ⚽😳",
+  "targetDuration": 33,
+  "goal": "subscribers",
+  "promotion": {
+    "type": "cliffhanger",
+    "longVideo": "video_001"
+  },
+  "format": {
+    "width": 1080,
+    "height": 1920,
+    "fps": 60
+  },
+  "chat": {
+    "groupName": "VESTUARIO",
+    "groupEmoji": "🔒",
+    "members": ["Cristiano", "Mbappe", "Vinicius"]
+  },
+  "characters": {
+    "Cristiano": {
+      "displayName": "Cristiano",
+      "initials": "CR",
+      "color": "#ff3b5c",
+      "side": "right",
+      "voice_id": "REPLACE_WITH_AI33_VOICE_ID_CRISTIANO",
+      "speed": 1.0,
+      "localVoice": { "voice": "es+m3", "pitch": 38, "rate": 158 }
+    },
+    "Mbappe": {
+      "displayName": "Mbappé",
+      "initials": "KM",
+      "color": "#3b82ff",
+      "side": "left",
+      "voice_id": "REPLACE_WITH_AI33_VOICE_ID_MBAPPE",
+      "speed": 1.05,
+      "localVoice": { "voice": "es+m1", "pitch": 55, "rate": 168 }
+    },
+    "Vinicius": {
+      "displayName": "Vinícius",
+      "initials": "VJ",
+      "color": "#22d37a",
+      "side": "left",
+      "voice_id": "REPLACE_WITH_AI33_VOICE_ID_VINICIUS",
+      "speed": 1.08,
+      "localVoice": { "voice": "es-419+m7", "pitch": 68, "rate": 172 }
+    },
+    "Narrador": {
+      "displayName": "Narrador",
+      "initials": "N",
+      "color": "#ffc83d",
+      "role": "narrator",
+      "voice_id": "REPLACE_WITH_AI33_VOICE_ID_NARRADOR",
+      "speed": 0.95,
+      "localVoice": { "voice": "es+m2", "pitch": 30, "rate": 150 }
+    }
+  },
+  "lines": [
+    { "id": "H1", "character": "Narrador", "tts": "El mensaje que nadie esperaba.", "cap": "EL MENSAJE QUE NADIE ESPERABA ⚽😳", "energy": 0.6 },
+
+    { "id": "L01", "character": "Cristiano", "cap": "Chicos, necesito deciros algo.", "energy": 0.3 },
+    { "id": "L02", "character": "Mbappe", "cap": "¿Qué ha pasado?", "energy": 0.4 },
+    { "id": "L03", "character": "Vinicius", "cap": "¿Por qué estás así?", "energy": 0.4 },
+
+    { "id": "L04", "character": "Cristiano", "tts": "Mañana uno de nosotros no jugará.", "cap": "Mañana uno de nosotros no jugará 😳", "energy": 0.8, "pauseBefore": 0.45 },
+    { "id": "L05", "character": "Mbappe", "cap": "¿Quién?", "energy": 0.6 },
+    { "id": "L06", "character": "Cristiano", "cap": "No puedo decirlo.", "energy": 0.6 },
+    { "id": "L07", "character": "Vinicius", "cap": "¿Pero sabes quién es?", "energy": 0.6 },
+    { "id": "L08", "character": "Cristiano", "cap": "Sí.", "energy": 0.7 },
+    { "id": "L09", "character": "Mbappe", "cap": "Entonces dilo.", "energy": 0.8 },
+
+    { "id": "L10", "character": "Cristiano", "cap": "El entrenador me ha dicho que soy yo.", "energy": 0.9, "pauseBefore": 0.4 },
+    { "id": "L11", "character": "Vinicius", "cap": "¿Tú no vas a jugar? 😳", "energy": 0.7 },
+    { "id": "L12", "character": "Cristiano", "cap": "No.", "energy": 0.6 },
+
+    { "id": "L13", "character": "Mbappe", "cap": "Entonces... ¿quién llevará el brazalete?", "energy": 0.7 },
+    { "id": "L14", "character": "Cristiano", "cap": "Ya lo han decidido.", "energy": 0.8 },
+    { "id": "L15", "character": "Vinicius", "cap": "¿Quién?", "energy": 0.8 },
+
+    { "id": "L16", "character": "Cristiano", "cap": "Tú.", "energy": 1.0, "pauseBefore": 0.7 },
+
+    { "id": "F1", "character": "Narrador", "cap": "Pero lo que pasó después cambió todo...", "energy": 1.0 },
+    { "id": "C1", "character": "Narrador", "tts": "Sigue el canal para ver la historia completa.", "cap": "SIGUE EL CANAL PARA VER LA HISTORIA COMPLETA 🔥", "energy": 1.0 }
+  ],
+  "scenes": [
+    { "type": "intro", "beat": "hook", "line": "H1", "kicker": "1 MENSAJE NUEVO" },
+    { "type": "chat", "beat": "contexto", "lines": ["L01", "L02", "L03"] },
+    { "type": "tension", "beat": "tension", "lines": ["L04", "L05", "L06", "L07", "L08", "L09"] },
+    { "type": "reveal", "beat": "momento_fuerte", "lines": ["L10", "L11", "L12"] },
+    { "type": "tension", "beat": "tension", "lines": ["L13", "L14", "L15"] },
+    { "type": "reveal", "beat": "giro", "lines": ["L16"], "hold": 1.1 },
+    { "type": "cliffhanger", "beat": "cliffhanger", "line": "F1" },
+    { "type": "cta", "beat": "cta", "line": "C1", "button": "SUSCRÍBETE" }
+  ],
+  "audio": {
+    "music": { "style": "cinematic_minor", "bpm": 96, "volume": 0.55, "duckTo": 0.28 },
+    "voiceVolume": 1.0,
+    "sfxVolume": 0.7
+  }
+}

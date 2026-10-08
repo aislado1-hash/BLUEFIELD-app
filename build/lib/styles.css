@@ -1,0 +1,191 @@
+/* Estética base del formato "chat cinematográfico" para Shorts 1080x1920.
+   Regla: aquí solo estados finales + opacidades iniciales; NUNCA transforms en
+   elementos que GSAP anima (evita gsap_css_transform_conflict). */
+
+:root {
+  --bg: #05060b;
+  --ink: #f6f7fb;
+  --muted: #9aa3b8;
+  --panel: rgba(16, 18, 30, 0.78);
+  --line: rgba(255, 255, 255, 0.09);
+  --gold: #ffc83d;
+  --font: "Inter", "Noto Color Emoji", sans-serif;
+}
+
+html, body { margin: 0; background: var(--bg); }
+body { color: var(--ink); font-family: var(--font); -webkit-font-smoothing: antialiased; }
+
+#root { position: relative; width: 100%; height: 100%; overflow: hidden; background: var(--bg); }
+.abs { position: absolute; inset: 0; }
+.clip { position: absolute; inset: 0; box-sizing: border-box; }
+
+/* ---------- fondo ---------- */
+#bg {
+  background:
+    radial-gradient(120% 70% at 50% 0%, #1a1f3d 0%, rgba(10, 12, 26, 0) 60%),
+    radial-gradient(90% 60% at 50% 110%, #2a0d22 0%, rgba(5, 6, 11, 0) 70%),
+    linear-gradient(180deg, #090b16 0%, #05060b 100%);
+  overflow: hidden;
+}
+.glow { position: absolute; border-radius: 50%; filter: blur(90px); opacity: 0.55; }
+.glow--a { width: 760px; height: 760px; left: -240px; top: 120px; background: #3b2bff; }
+.glow--b { width: 680px; height: 680px; right: -260px; top: 820px; background: #ff2d6f; opacity: 0.35; }
+.glow--c { width: 560px; height: 560px; left: 260px; top: 1380px; background: #00c2ff; opacity: 0.28; }
+.particle { position: absolute; border-radius: 50%; background: #fff; opacity: 0; box-shadow: 0 0 12px rgba(255, 255, 255, 0.8); }
+#grid {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+  background-size: 90px 90px;
+  -webkit-mask-image: radial-gradient(70% 55% at 50% 45%, #000 0%, transparent 100%);
+  mask-image: radial-gradient(70% 55% at 50% 45%, #000 0%, transparent 100%);
+}
+
+/* ---------- cámara ---------- */
+#cam-zoom { transform-origin: 50% 70%; }
+#cam-punch { transform-origin: 50% 60%; }
+
+/* ---------- cabecera del grupo ---------- */
+#chat-header {
+  position: absolute; left: 64px; right: 64px; top: 150px; height: 150px;
+  display: flex; align-items: center; gap: 28px; opacity: 0;
+}
+.stack { display: flex; flex: 0 0 auto; }
+.stack__av {
+  width: 92px; height: 92px; border-radius: 50%; margin-left: -26px; display: grid; place-items: center;
+  font-weight: 900; font-size: 32px; color: #fff; border: 5px solid #0b0d18;
+  background: linear-gradient(150deg, color-mix(in srgb, var(--c) 70%, #fff), var(--c) 45%, color-mix(in srgb, var(--c) 60%, #000));
+}
+.stack__av:first-child { margin-left: 0; }
+.group { flex: 1 1 auto; min-width: 0; }
+.group__name { font-weight: 900; font-size: 54px; letter-spacing: 0.02em; line-height: 1.1; }
+.group__status { position: relative; height: 44px; margin-top: 6px; }
+.status {
+  position: absolute; left: 0; top: 0; white-space: nowrap; font-size: 32px; font-weight: 600;
+  color: var(--muted); opacity: 0; display: flex; align-items: center;
+}
+.status i { display: inline-block; width: 14px; height: 14px; border-radius: 50%; margin-right: 12px; }
+#st-idle { opacity: 1; }
+
+/* ---------- panel de chat ---------- */
+#chat-panel {
+  position: absolute; left: 44px; right: 44px; top: 330px; bottom: 380px;
+  border-radius: 56px; background: var(--panel); border: 2px solid var(--line);
+  box-shadow: 0 40px 120px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  overflow: hidden; opacity: 0;
+}
+#thread-viewport {
+  position: absolute; inset: 0; padding: 48px 44px 56px; box-sizing: border-box; overflow: hidden;
+  -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 70px, #000 100%);
+  mask-image: linear-gradient(180deg, transparent 0, #000 70px, #000 100%);
+}
+#thread { display: flex; flex-direction: column; gap: 30px; }
+
+.msg { display: flex; align-items: flex-end; gap: 20px; opacity: 0; transform-origin: 0% 100%; }
+.msg--right { flex-direction: row-reverse; transform-origin: 100% 100%; }
+.msg__avatar { position: relative; flex: 0 0 88px; width: 88px; height: 88px; }
+.msg__initials {
+  position: absolute; inset: 0; border-radius: 50%; display: grid; place-items: center;
+  font-weight: 900; font-size: 32px; color: #fff;
+  background: linear-gradient(150deg, color-mix(in srgb, var(--c) 70%, #fff), var(--c) 45%, color-mix(in srgb, var(--c) 60%, #000));
+  box-shadow: 0 8px 26px rgba(0, 0, 0, 0.45);
+}
+.msg__ring { position: absolute; inset: -8px; border-radius: 50%; border: 5px solid var(--c); opacity: 0; }
+.msg__body { display: flex; flex-direction: column; max-width: 760px; min-width: 0; }
+.msg--right .msg__body { align-items: flex-end; }
+.msg__name { font-size: 30px; font-weight: 800; color: var(--c); margin: 0 18px 10px; letter-spacing: 0.01em; }
+.msg__bubble {
+  position: relative; padding: 24px 34px 26px; border-radius: 40px 40px 40px 12px;
+  background: rgba(255, 255, 255, 0.08); border: 2px solid rgba(255, 255, 255, 0.1);
+  font-size: 54px; font-weight: 700; line-height: 1.2; color: var(--ink);
+}
+.msg--right .msg__bubble {
+  border-radius: 40px 40px 12px 40px; border-color: transparent;
+  background: linear-gradient(135deg, var(--c), color-mix(in srgb, var(--c) 55%, #000));
+}
+.msg__glow {
+  position: absolute; inset: -6px; border-radius: inherit; opacity: 0;
+  box-shadow: 0 0 60px 8px var(--c), 0 0 0 4px var(--c);
+}
+.msg__text { position: relative; }
+.msg--big .msg__bubble { font-size: 66px; font-weight: 800; }
+.msg--huge .msg__bubble { font-size: 150px; font-weight: 900; line-height: 1; padding: 30px 60px 36px; }
+
+.w { display: inline-block; opacity: 0; }
+.w--em { color: var(--gold); }
+
+/* ---------- overlays ---------- */
+.fx { position: absolute; inset: 0; pointer-events: none; }
+#mood-tension { background: radial-gradient(80% 60% at 50% 55%, rgba(255, 20, 60, 0.0) 0%, rgba(150, 0, 30, 0.55) 100%); opacity: 0; }
+#mood-dark { background: #000; opacity: 0; }
+#mood-gold { background: radial-gradient(60% 40% at 50% 70%, rgba(255, 200, 61, 0.35), rgba(255, 200, 61, 0) 70%); opacity: 0; }
+#fx-glitch {
+  opacity: 0; mix-blend-mode: screen;
+  background: repeating-linear-gradient(0deg, rgba(255, 0, 80, 0.35) 0 6px, transparent 6px 22px, rgba(0, 220, 255, 0.3) 22px 26px, transparent 26px 60px);
+}
+#fx-flash { background: #fff; opacity: 0; }
+/* viñeta como pseudo-elemento: oscurece bordes sin ser un "elemento opaco" para el auditor */
+#root::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: radial-gradient(120% 85% at 50% 50%, rgba(0, 0, 0, 0) 55%, rgba(0, 0, 0, 0.75) 100%); }
+#grain {
+  opacity: 0.07; mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+}
+
+/* ---------- intro ---------- */
+#intro-inner { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0 70px; box-sizing: border-box; }
+.kicker {
+  display: flex; align-items: center; gap: 16px; padding: 18px 34px; border-radius: 999px;
+  background: rgba(255, 45, 85, 0.16); border: 2px solid rgba(255, 45, 85, 0.6);
+  font-size: 34px; font-weight: 900; letter-spacing: 0.12em; color: #ff8aa2;
+}
+.kicker .dot { width: 18px; height: 18px; border-radius: 50%; background: #ff2d55; box-shadow: 0 0 18px #ff2d55; }
+.intro__title {
+  margin: 56px 0 0; text-align: center; font-weight: 900; font-size: 118px; line-height: 1.02;
+  letter-spacing: -0.01em; text-shadow: 0 10px 50px rgba(0, 0, 0, 0.7);
+}
+.intro__title .w { margin: 0 6px; }
+.notif {
+  margin-top: 80px; width: 900px; box-sizing: border-box; display: flex; align-items: center; gap: 24px;
+  padding: 28px 32px; border-radius: 40px; background: rgba(255, 255, 255, 0.1);
+  border: 2px solid rgba(255, 255, 255, 0.14); box-shadow: 0 30px 80px rgba(0, 0, 0, 0.5); opacity: 0;
+}
+.notif__av {
+  flex: 0 0 96px; height: 96px; border-radius: 26px; display: grid; place-items: center; font-weight: 900; font-size: 34px;
+  background: linear-gradient(135deg, #ff3b5c, #8a1230);
+}
+.notif__txt { min-width: 0; flex: 1 1 auto; }
+.notif__top { display: flex; justify-content: space-between; font-size: 30px; font-weight: 800; color: var(--muted); letter-spacing: 0.06em; }
+.notif__msg { font-size: 40px; font-weight: 700; margin-top: 6px; line-height: 1.2; }
+
+/* ---------- cliffhanger ---------- */
+#cliff-inner { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding: 0 80px; box-sizing: border-box; }
+.cliff__q {
+  position: absolute; left: 0; right: 0; top: 560px; text-align: center; font-size: 900px; font-weight: 900; line-height: 1;
+  color: rgba(255, 200, 61, 0.07); opacity: 0;
+}
+.cliff__text {
+  position: relative; text-align: center; font-size: 104px; font-weight: 900; line-height: 1.08; max-width: 920px;
+  text-shadow: 0 10px 60px rgba(0, 0, 0, 0.9);
+}
+.cliff__text .w { margin: 0 8px; }
+
+/* ---------- CTA ---------- */
+#cta-bg {
+  background:
+    radial-gradient(90% 55% at 50% 40%, rgba(255, 60, 90, 0.55) 0%, rgba(255, 60, 90, 0) 70%),
+    radial-gradient(70% 40% at 50% 85%, rgba(255, 170, 40, 0.4) 0%, rgba(255, 170, 40, 0) 70%),
+    #0a0610;
+  opacity: 0;
+}
+#cta-inner { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0 70px 160px; box-sizing: border-box; }
+.cta__head { text-align: center; font-size: 128px; font-weight: 900; line-height: 0.98; letter-spacing: -0.01em; text-shadow: 0 12px 50px rgba(0, 0, 0, 0.6); }
+.cta__sub { margin-top: 34px; text-align: center; font-size: 60px; font-weight: 800; line-height: 1.15; color: #ffd9a0; max-width: 900px; }
+.cta__head .w, .cta__sub .w { margin: 0 6px; }
+.cta__btn { position: relative; margin-top: 80px; width: 640px; height: 140px; opacity: 0; }
+.cta__pill {
+  position: absolute; inset: 0; border-radius: 999px; display: flex; align-items: center; justify-content: center; gap: 22px;
+  font-size: 56px; font-weight: 900; letter-spacing: 0.04em;
+}
+.cta__pill--on { background: #ff1f44; box-shadow: 0 20px 60px rgba(255, 31, 68, 0.6), inset 0 2px 0 rgba(255, 255, 255, 0.3); }
+.cta__pill--done { background: #2a2a33; color: #d8d8e0; opacity: 0; }
+.burst { position: absolute; left: 50%; top: 50%; width: 18px; height: 18px; margin: -9px 0 0 -9px; border-radius: 50%; opacity: 0; }

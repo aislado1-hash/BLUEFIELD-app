@@ -1,0 +1,20 @@
+{
+  "name": "bluefield-shorts-engine",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Motor de YouTube Shorts de conversaciones (HyperFrames + HTML + GSAP), dirigido por fichas JSON.",
+  "type": "module",
+  "scripts": {
+    "short": "python3 build/run.py",
+    "check": "hyperframes check"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aislado1-hash/BLUEFIELD-app.git"
+  },
+  "license": "UNLICENSED",
+  "devDependencies": {
+    "gsap": "^3.15.0",
+    "hyperframes": "0.8.141"
+  }
+}

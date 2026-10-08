@@ -1,0 +1,230 @@
+{
+  "b4241fe9d785191a681b1a0c": {
+    "provider": "local",
+    "character": "Narrador",
+    "text": "El mensaje que nadie esperaba.",
+    "voice": {
+      "voice": "es+m2",
+      "pitch": 30,
+      "rate": 150
+    },
+    "speed": 0.95,
+    "task_id": null
+  },
+  "d19206448ea563c39cafe406": {
+    "provider": "local",
+    "character": "Cristiano",
+    "text": "Chicos, necesito deciros algo.",
+    "voice": {
+      "voice": "es+m3",
+      "pitch": 38,
+      "rate": 158
+    },
+    "speed": 1.0,
+    "task_id": null
+  },
+  "06ff60238fb29afc8b921426": {
+    "provider": "local",
+    "character": "Mbappe",
+    "text": "¿Qué ha pasado?",
+    "voice": {
+      "voice": "es+m1",
+      "pitch": 55,
+      "rate": 168
+    },
+    "speed": 1.05,
+    "task_id": null
+  },
+  "74553426fdf21b34fc5013c7": {
+    "provider": "local",
+    "character": "Vinicius",
+    "text": "¿Por qué estás así?",
+    "voice": {
+      "voice": "es-419+m7",
+      "pitch": 68,
+      "rate": 172
+    },
+    "speed": 1.08,
+    "task_id": null
+  },
+  "f47961db9d0c6ec2976595cd": {
+    "provider": "local",
+    "character": "Cristiano",
+    "text": "Mañana uno de nosotros no jugará.",
+    "voice": {
+      "voice": "es+m3",
+      "pitch": 38,
+      "rate": 158
+    },
+    "speed": 1.0,
+    "task_id": null
+  },
+  "2c375867df4d64b26890a186": {
+    "provider": "local",
+    "character": "Mbappe",
+    "text": "¿Quién?",
+    "voice": {
+      "voice": "es+m1",
+      "pitch": 55,
+      "rate": 168
+    },
+    "speed": 1.05,
+    "task_id": null
+  },
+  "e784f395146be05074fbc199": {
+    "provider": "local",
+    "character": "Cristiano",
+    "text": "No puedo decirlo.",
+    "voice": {
+      "voice": "es+m3",
+      "pitch": 38,
+      "rate": 158
+    },
+    "speed": 1.0,
+    "task_id": null
+  },
+  "fc8c9cb0709bfaf4b85bd90a": {
+    "provider": "local",
+    "character": "Vinicius",
+    "text": "¿Pero sabes quién es?",
+    "voice": {
+      "voice": "es-419+m7",
+      "pitch": 68,
+      "rate": 172
+    },
+    "speed": 1.08,
+    "task_id": null
+  },
+  "9e1bb44c8cfa390935228135": {
+    "provider": "local",
+    "character": "Cristiano",
+    "text": "Sí.",
+    "voice": {
+      "voice": "es+m3",
+      "pitch": 38,
+      "rate": 158
+    },
+    "speed": 1.0,
+    "task_id": null
+  },
+  "000d1aee2d066d7ae507ded5": {
+    "provider": "local",
+    "character": "Mbappe",
+    "text": "Entonces dilo.",
+    "voice": {
+      "voice": "es+m1",
+      "pitch": 55,
+      "rate": 168
+    },
+    "speed": 1.05,
+    "task_id": null
+  },
+  "f89990ad929a29b62365f07a": {
+    "provider": "local",
+    "character": "Cristiano",
+    "text": "El entrenador me ha dicho que soy yo.",
+    "voice": {
+      "voice": "es+m3",
+      "pitch": 38,
+      "rate": 158
+    },
+    "speed": 1.0,
+    "task_id": null
+  },
+  "b414645d191d96da14c44148": {
+    "provider": "local",
+    "character": "Vinicius",
+    "text": "¿Tú no vas a jugar?",
+    "voice": {
+      "voice": "es-419+m7",
+      "pitch": 68,
+      "rate": 172
+    },
+    "speed": 1.08,
+    "task_id": null
+  },
+  "51df53ffd3b363802c2206f1": {
+    "provider": "local",
+    "character": "Cristiano",
+    "text": "No.",
+    "voice": {
+      "voice": "es+m3",
+      "pitch": 38,
+      "rate": 158
+    },
+    "speed": 1.0,
+    "task_id": null
+  },
+  "f28eed7123d352687e4633ea": {
+    "provider": "local",
+    "character": "Mbappe",
+    "text": "Entonces... ¿quién llevará el brazalete?",
+    "voice": {
+      "voice": "es+m1",
+      "pitch": 55,
+      "rate": 168
+    },
+    "speed": 1.05,
+    "task_id": null
+  },
+  "793547ffb78b31ece35a7803": {
+    "provider": "local",
+    "character": "Cristiano",
+    "text": "Ya lo han decidido.",
+    "voice": {
+      "voice": "es+m3",
+      "pitch": 38,
+      "rate": 158
+    },
+    "speed": 1.0,
+    "task_id": null
+  },
+  "17631a0611a69dde0a42401f": {
+    "provider": "local",
+    "character": "Vinicius",
+    "text": "¿Quién?",
+    "voice": {
+      "voice": "es-419+m7",
+      "pitch": 68,
+      "rate": 172
+    },
+    "speed": 1.08,
+    "task_id": null
+  },
+  "695b2a769199b92b6aa3c69c": {
+    "provider": "local",
+    "character": "Cristiano",
+    "text": "Tú.",
+    "voice": {
+      "voice": "es+m3",
+      "pitch": 38,
+      "rate": 158
+    },
+    "speed": 1.0,
+    "task_id": null
+  },
+  "525274b6715456a5ca349c77": {
+    "provider": "local",
+    "character": "Narrador",
+    "text": "Pero lo que pasó después cambió todo...",
+    "voice": {
+      "voice": "es+m2",
+      "pitch": 30,
+      "rate": 150
+    },
+    "speed": 0.95,
+    "task_id": null
+  },
+  "1d4be5eb997752936908c3e7": {
+    "provider": "local",
+    "character": "Narrador",
+    "text": "Sigue el canal para ver la historia completa.",
+    "voice": {
+      "voice": "es+m2",
+      "pitch": 30,
+      "rate": 150
+    },
+    "speed": 0.95,
+    "task_id": null
+  }
+}

@@ -1,0 +1,600 @@
+{
+  "short": "short_001",
+  "provider": "local",
+  "lines": {
+    "H1": {
+      "file": "voices/cache/b4241fe9d785191a681b1a0c.mp3",
+      "hash": "b4241fe9d785191a681b1a0c",
+      "text": "El mensaje que nadie esperaba.",
+      "duration": 2.429,
+      "speechStart": 0.0,
+      "speechEnd": 2.1,
+      "wordTiming": "estimated",
+      "words": [
+        {
+          "w": "EL",
+          "start": 0.0,
+          "end": 0.226
+        },
+        {
+          "w": "MENSAJE",
+          "start": 0.226,
+          "end": 0.775
+        },
+        {
+          "w": "QUE",
+          "start": 0.775,
+          "end": 1.066
+        },
+        {
+          "w": "NADIE",
+          "start": 1.066,
+          "end": 1.486
+        },
+        {
+          "w": "ESPERABA",
+          "start": 1.486,
+          "end": 2.1
+        },
+        {
+          "w": "⚽😳",
+          "start": 1.486,
+          "end": 2.1
+        }
+      ]
+    },
+    "L01": {
+      "file": "voices/cache/d19206448ea563c39cafe406.mp3",
+      "hash": "d19206448ea563c39cafe406",
+      "text": "Chicos, necesito deciros algo.",
+      "duration": 2.586,
+      "speechStart": 0.05,
+      "speechEnd": 2.2,
+      "wordTiming": "estimated",
+      "words": [
+        {
+          "w": "Chicos,",
+          "start": 0.05,
+          "end": 0.554
+        },
+        {
+          "w": "necesito",
+          "start": 0.621,
+          "end": 1.259
+        },
+        {
+          "w": "deciros",
+          "start": 1.259,
+          "end": 1.83
+        },
+        {
+          "w": "algo.",
+          "start": 1.83,
+          "end": 2.2
+        }
+      ]
+    },
+    "L02": {
+      "file": "voices/cache/06ff60238fb29afc8b921426.mp3",
+      "hash": "06ff60238fb29afc8b921426",
+      "text": "¿Qué ha pasado?",
+      "duration": 1.097,
+      "speechStart": 0.04,
+      "speechEnd": 0.76,
+      "wordTiming": "estimated",
+      "words": [
+        {
+          "w": "¿Qué",
+          "start": 0.04,
+          "end": 0.249
+        },
+        {
+          "w": "ha",
+          "start": 0.249,
+          "end": 0.412
+        },
+        {
+          "w": "pasado?",
+          "start": 0.412,
+          "end": 0.76
+        }
+      ]
+    },
+    "L03": {
+      "file": "voices/cache/74553426fdf21b34fc5013c7.mp3",
+      "hash": "74553426fdf21b34fc5013c7",
+      "text": "¿Por qué estás así?",
+      "duration": 1.332,
+      "speechStart": 0.03,
+      "speechEnd": 1.02,
+      "wordTiming": "estimated",
+      "words": [
+        {
+          "w": "¿Por",
+          "start": 0.03,
+          "end": 0.253
+        },
+        {
+          "w": "qué",
+          "start": 0.253,
+          "end": 0.476
+        },
+        {
+          "w": "estás",
+          "start": 0.476,
+          "end": 0.797
+        },
+        {
+          "w": "así?",
+          "start": 0.797,
+          "end": 1.02
+        }
+      ]
+    },
+    "L04": {
+      "file": "voices/cache/f47961db9d0c6ec2976595cd.mp3",
+      "hash": "f47961db9d0c6ec2976595cd",
+      "text": "Mañana uno de nosotros no jugará.",
+      "duration": 2.325,
+      "speechStart": 0.0,
+      "speechEnd": 1.94,
+      "wordTiming": "estimated",
+      "words": [
+        {
+          "w": "Mañana",
+          "start": 0.0,
+          "end": 0.404
+        },
+        {
+          "w": "uno",
+          "start": 0.404,
+          "end": 0.647
+        },
+        {
+          "w": "de",
+          "start": 0.647,
+          "end": 0.835
+        },
+        {
+          "w": "nosotros",
+          "start": 0.835,
+          "end": 1.347
+        },
+        {
+          "w": "no",
+          "start": 1.347,
+          "end": 1.536
+        },
+        {
+          "w": "jugará",
+          "start": 1.536,
+          "end": 1.94
+        },
+        {
+          "w": "😳",
+          "start": 1.536,
+          "end": 1.94
+        }
+      ]
+    },
+    "L05": {
+      "file": "voices/cache/2c375867df4d64b26890a186.mp3",
+      "hash": "2c375867df4d64b26890a186",
+      "text": "¿Quién?",
+      "duration": 0.758,
+      "speechStart": 0.05,
+      "speechEnd": 0.43,
+      "wordTiming": "estimated",
+      "words": [
+        {
+          "w": "¿Quién?",
+          "start": 0.05,
+          "end": 0.43
+        }
+      ]
+    },
+    "L06": {
+      "file": "voices/cache/e784f395146be05074fbc199.mp3",
+      "hash": "e784f395146be05074fbc199",
+      "text": "No puedo decirlo.",
+      "duration": 1.489,
+      "speechStart": 0.0,
+      "speechEnd": 1.09,
+      "wordTiming": "estimated",
+      "words": [
+        {
+          "w": "No",
+          "start": 0.0,
+          "end": 0.206
+        },
+        {
+          "w": "puedo",
+          "start": 0.206,
+          "end": 0.589
+        },
+        {
+          "w": "decirlo.",
+          "start": 0.589,
+          "end": 1.09
+        }
+      ]
+    },
+    "L07": {
+      "file": "voices/cache/fc8c9cb0709bfaf4b85bd90a.mp3",
+      "hash": "fc8c9cb0709bfaf4b85bd90a",
+      "text": "¿Pero sabes quién es?",
+      "duration": 1.463,
+      "speechStart": 0.03,
+      "speechEnd": 1.15,
+      "wordTiming": "estimated",
+      "words": [
+        {
+          "w": "¿Pero",
+          "start": 0.03,
+          "end": 0.31
+        },
+        {
+          "w": "sabes",
+          "start": 0.31,
+          "end": 0.641
+        },
+        {
+          "w": "quién",
+          "start": 0.641,
+          "end": 0.972
+        },
+        {
+          "w": "es?",
+          "start": 0.972,
+          "end": 1.15
+        }
+      ]
+    },
+    "L08": {
+      "file": "voices/cache/9e1bb44c8cfa390935228135.mp3",
+      "hash": "9e1bb44c8cfa390935228135",
+      "text": "Sí.",
+      "duration": 0.653,
+      "speechStart": 0.01,
+      "speechEnd": 0.27,
+      "wordTiming": "estimated",
+      "words": [
+        {
+          "w": "Sí.",
+          "start": 0.01,
+          "end": 0.27
+        }
+      ]
+    },
+    "L09": {
+      "file": "voices/cache/000d1aee2d066d7ae507ded5.mp3",
+      "hash": "000d1aee2d066d7ae507ded5",
+      "text": "Entonces dilo.",
+      "duration": 1.176,
+      "speechStart": 0.0,
+      "speechEnd": 0.85,
+      "wordTiming": "estimated",
+      "words": [
+        {
+          "w": "Entonces",
+          "start": 0.0,
+          "end": 0.538
+        },
+        {
+          "w": "dilo.",
+          "start": 0.538,
+          "end": 0.85
+        }
+      ]
+    },
+    "L10": {
+      "file": "voices/cache/f89990ad929a29b62365f07a.mp3",
+      "hash": "f89990ad929a29b62365f07a",
+      "text": "El entrenador me ha dicho que soy yo.",
+      "duration": 2.377,
+      "speechStart": 0.0,
+      "speechEnd": 1.98,
+      "wordTiming": "estimated",
+      "words": [
+        {
+          "w": "El",
+          "start": 0.0,
+          "end": 0.169
+        },
+        {
+          "w": "entrenador",
+          "start": 0.169,
+          "end": 0.724
+        },
+        {
+          "w": "me",
+          "start": 0.724,
+          "end": 0.893
+        },
+        {
+          "w": "ha",
+          "start": 0.893,
+          "end": 1.062
+        },
+        {
+          "w": "dicho",
+          "start": 1.062,
+          "end": 1.376
+        },
+        {
+          "w": "que",
+          "start": 1.376,
+          "end": 1.594
+        },
+        {
+          "w": "soy",
+          "start": 1.594,
+          "end": 1.811
+        },
+        {
+          "w": "yo.",
+          "start": 1.811,
+          "end": 1.98
+        }
+      ]
+    },
+    "L11": {
+      "file": "voices/cache/b414645d191d96da14c44148.mp3",
+      "hash": "b414645d191d96da14c44148",
+      "text": "¿Tú no vas a jugar?",
+      "duration": 1.411,
+      "speechStart": 0.04,
+      "speechEnd": 1.11,
+      "wordTiming": "estimated",
+      "words": [
+        {
+          "w": "¿Tú",
+          "start": 0.04,
+          "end": 0.209
+        },
+        {
+          "w": "no",
+          "start": 0.209,
+          "end": 0.379
+        },
+        {
+          "w": "vas",
+          "start": 0.379,
+          "end": 0.597
+        },
+        {
+          "w": "a",
+          "start": 0.597,
+          "end": 0.718
+        },
+        {
+          "w": "jugar?",
+          "start": 0.718,
+          "end": 1.033
+        },
+        {
+          "w": "😳",
+          "start": 0.718,
+          "end": 1.033
+        }
+      ]
+    },
+    "L12": {
+      "file": "voices/cache/51df53ffd3b363802c2206f1.mp3",
+      "hash": "51df53ffd3b363802c2206f1",
+      "text": "No.",
+      "duration": 0.653,
+      "speechStart": 0.0,
+      "speechEnd": 0.25,
+      "wordTiming": "estimated",
+      "words": [
+        {
+          "w": "No.",
+          "start": 0.0,
+          "end": 0.25
+        }
+      ]
+    },
+    "L13": {
+      "file": "voices/cache/f28eed7123d352687e4633ea.mp3",
+      "hash": "f28eed7123d352687e4633ea",
+      "text": "Entonces... ¿quién llevará el brazalete?",
+      "duration": 2.56,
+      "speechStart": 0.0,
+      "speechEnd": 2.22,
+      "wordTiming": "estimated",
+      "words": [
+        {
+          "w": "Entonces...",
+          "start": 0.0,
+          "end": 0.518
+        },
+        {
+          "w": "¿quién",
+          "start": 0.638,
+          "end": 0.993
+        },
+        {
+          "w": "llevará",
+          "start": 0.993,
+          "end": 1.456
+        },
+        {
+          "w": "el",
+          "start": 1.456,
+          "end": 1.647
+        },
+        {
+          "w": "brazalete?",
+          "start": 1.647,
+          "end": 2.22
+        }
+      ]
+    },
+    "L14": {
+      "file": "voices/cache/793547ffb78b31ece35a7803.mp3",
+      "hash": "793547ffb78b31ece35a7803",
+      "text": "Ya lo han decidido.",
+      "duration": 1.541,
+      "speechStart": 0.01,
+      "speechEnd": 1.15,
+      "wordTiming": "estimated",
+      "words": [
+        {
+          "w": "Ya",
+          "start": 0.01,
+          "end": 0.2
+        },
+        {
+          "w": "lo",
+          "start": 0.2,
+          "end": 0.39
+        },
+        {
+          "w": "han",
+          "start": 0.39,
+          "end": 0.634
+        },
+        {
+          "w": "decidido.",
+          "start": 0.634,
+          "end": 1.15
+        }
+      ]
+    },
+    "L15": {
+      "file": "voices/cache/17631a0611a69dde0a42401f.mp3",
+      "hash": "17631a0611a69dde0a42401f",
+      "text": "¿Quién?",
+      "duration": 0.758,
+      "speechStart": 0.04,
+      "speechEnd": 0.45,
+      "wordTiming": "estimated",
+      "words": [
+        {
+          "w": "¿Quién?",
+          "start": 0.04,
+          "end": 0.45
+        }
+      ]
+    },
+    "L16": {
+      "file": "voices/cache/695b2a769199b92b6aa3c69c.mp3",
+      "hash": "695b2a769199b92b6aa3c69c",
+      "text": "Tú.",
+      "duration": 0.653,
+      "speechStart": 0.05,
+      "speechEnd": 0.26,
+      "wordTiming": "estimated",
+      "words": [
+        {
+          "w": "Tú.",
+          "start": 0.05,
+          "end": 0.26
+        }
+      ]
+    },
+    "F1": {
+      "file": "voices/cache/525274b6715456a5ca349c77.mp3",
+      "hash": "525274b6715456a5ca349c77",
+      "text": "Pero lo que pasó después cambió todo...",
+      "duration": 2.821,
+      "speechStart": 0.04,
+      "speechEnd": 2.6,
+      "wordTiming": "estimated",
+      "words": [
+        {
+          "w": "Pero",
+          "start": 0.04,
+          "end": 0.388
+        },
+        {
+          "w": "lo",
+          "start": 0.388,
+          "end": 0.609
+        },
+        {
+          "w": "que",
+          "start": 0.609,
+          "end": 0.893
+        },
+        {
+          "w": "pasó",
+          "start": 0.893,
+          "end": 1.241
+        },
+        {
+          "w": "después",
+          "start": 1.241,
+          "end": 1.778
+        },
+        {
+          "w": "cambió",
+          "start": 1.778,
+          "end": 2.252
+        },
+        {
+          "w": "todo...",
+          "start": 2.252,
+          "end": 2.6
+        }
+      ]
+    },
+    "C1": {
+      "file": "voices/cache/1d4be5eb997752936908c3e7.mp3",
+      "hash": "1d4be5eb997752936908c3e7",
+      "text": "Sigue el canal para ver la historia completa.",
+      "duration": 3.239,
+      "speechStart": 0.01,
+      "speechEnd": 2.88,
+      "wordTiming": "estimated",
+      "words": [
+        {
+          "w": "SIGUE",
+          "start": 0.01,
+          "end": 0.391
+        },
+        {
+          "w": "EL",
+          "start": 0.391,
+          "end": 0.596
+        },
+        {
+          "w": "CANAL",
+          "start": 0.596,
+          "end": 0.976
+        },
+        {
+          "w": "PARA",
+          "start": 0.976,
+          "end": 1.299
+        },
+        {
+          "w": "VER",
+          "start": 1.299,
+          "end": 1.562
+        },
+        {
+          "w": "LA",
+          "start": 1.562,
+          "end": 1.767
+        },
+        {
+          "w": "HISTORIA",
+          "start": 1.767,
+          "end": 2.324
+        },
+        {
+          "w": "COMPLETA",
+          "start": 2.324,
+          "end": 2.88
+        },
+        {
+          "w": "🔥",
+          "start": 2.324,
+          "end": 2.88
+        }
+      ]
+    }
+  }
+}

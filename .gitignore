@@ -1,0 +1,12 @@
+# secretos
+.env
+# dependencias
+node_modules/
+__pycache__/
+# salidas regenerables
+build/dist/
+voices/cache/*.mp3
+renders/*.mp4
+.hyperframes/
+renders/work-*/
+renders/.*hf-transaction*/
