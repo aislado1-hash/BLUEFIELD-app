@@ -10,3 +10,4 @@ renders/*.mp4
 .hyperframes/
 renders/work-*/
 renders/.*hf-transaction*/
+renders/*_frames/*.png
