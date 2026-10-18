@@ -1,0 +1,64 @@
+STORYBOARD CAMIONERAS - CÓMO USARLO
+====================================
+
+Necesitas: una computadora con Windows o Mac, Google Chrome
+y tu cuenta de Google con acceso a Google Flow.
+
+
+1) ABRIR LA APP
+   Haz doble clic en:
+     - Windows:  INICIAR (Windows)
+     - Mac:      INICIAR (Mac)
+
+   Se abre una ventana negra y, enseguida, la app en tu navegador.
+   NO CIERRES LA VENTANA NEGRA mientras uses la app.
+
+   La primera vez puede pedirte instalar "Node.js" (un programa gratuito
+   que la app necesita). Sigue lo que diga la ventana y vuelve a hacer
+   doble clic en INICIAR.
+
+   Si Windows muestra "Windows protegió su PC": pulsa "Más información"
+   y luego "Ejecutar de todas formas".
+   Si el Mac dice que no puede abrirlo: clic derecho sobre el archivo,
+   "Abrir", y otra vez "Abrir".
+
+
+2) CONECTAR TU CUENTA DE GOOGLE (solo la primera vez)
+   - En la app, pestaña "1 · Conexión", deja marcada la opción
+     "Navegador: Google Flow" y pulsa "Abrir navegador".
+   - Se abre otra ventana de Chrome: inicia sesión con tu cuenta de Google.
+   - En esa ventana, entra en Flow, crea un proyecto y elige formato
+     vertical (9:16).
+   - Deja esa ventana de Chrome abierta. La app la usará sola.
+
+
+3) CREAR TU VIDEO (sigue las pestañas en orden)
+   2 · Camionera:  sube la hoja de estilo de tu personaje
+                   (o descríbela y pulsa "Generar").
+   3 · Camión:     sube fotos del camión por dentro
+                   (o descríbelo y pulsa "Generar referencia").
+   4 · Rutina:     escribe qué quieres contar, pulsa "Crear storyboard"
+                   y después "Generar todas las imágenes".
+                   Puedes cambiar el texto de cualquier escena y
+                   regenerar su imagen.
+   5 · Animar:     pulsa "Animar todas" y espera (cada clip tarda
+                   unos minutos). Luego "Reproducir secuencia" para verlo
+                   y "Descargar clip" o "Exportar MP4 final".
+
+   Mientras trabaja, una barra amarilla arriba te dice qué está haciendo.
+   Si la barra dice "Modo asistido: ...", haz eso a mano en la ventana
+   de Chrome (por ejemplo, pulsar un botón en Flow). La app recoge el
+   resultado sola.
+
+
+4) PARA TERMINAR
+   Cierra la ventana negra. Tus proyectos quedan guardados en la carpeta
+   "data" y aparecen la próxima vez que abras la app.
+
+
+DUDAS FRECUENTES
+- "Exportar MP4 final" da error: hace falta el programa gratuito ffmpeg.
+  Puedes descargar cada clip con su botón y unirlos en CapCut u otro editor.
+- Esto usa los créditos de tu plan de Google Flow. Google no permite
+  oficialmente automatizar Flow: úsalo con moderación.
+- ¿Quieres probar sin gastar créditos? En "1 · Conexión" elige "Demo".

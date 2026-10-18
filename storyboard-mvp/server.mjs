@@ -188,7 +188,8 @@ async function exportFinal(id) {
   try {
     await promisify(execFile)('ffmpeg', ['-y', '-f', 'concat', '-safe', '0', '-i', list, '-c', 'copy', path.join(store.mediaDir(id), name)]);
   } catch (e) {
-    throw httpError(500, `ffmpeg falló (¿está instalado?): ${String(e.stderr || e.message).slice(-300)}`);
+    if (e.code === 'ENOENT') throw httpError(500, 'Para unir los clips en un solo video hace falta el programa gratuito ffmpeg (ver LEEME). Mientras tanto, descarga cada clip con su botón ⬇.');
+    throw httpError(500, `No se pudieron unir los clips: ${String(e.stderr || e.message).slice(-300)}`);
   }
   return update(id, (q) => { q.finalVideo = `media/${name}`; });
 }
@@ -325,7 +326,26 @@ const server = http.createServer(async (req, res) => {
 // las generaciones en el navegador pueden tardar minutos (y hacer cola)
 server.requestTimeout = 0;
 
+function openInBrowser(url) {
+  if (process.env.NO_OPEN === '1') return;
+  const [cmd, args] = process.platform === 'win32' ? ['cmd', ['/c', 'start', '', url]]
+    : process.platform === 'darwin' ? ['open', [url]] : ['xdg-open', [url]];
+  execFile(cmd, args, () => {});
+}
+
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  server.listen(PORT, HOST, () => console.log(`Storyboard camioneras → http://${HOST}:${PORT}`));
+  const url = `http://${HOST}:${PORT}`;
+  server.on('error', (e) => {
+    if (e.code !== 'EADDRINUSE') throw e;
+    // ya estaba abierta (p. ej. doble clic dos veces): solo se muestra la página
+    console.log(`La app ya estaba abierta. Abriendo ${url}`);
+    openInBrowser(url);
+    setTimeout(() => process.exit(0), 1000);
+  });
+  server.listen(PORT, HOST, () => {
+    console.log(`\n  Storyboard Camioneras está funcionando en ${url}`);
+    console.log('  NO CIERRES ESTA VENTANA mientras uses la app (al cerrarla, la app se apaga).\n');
+    openInBrowser(url);
+  });
 }
 export { server, browser };

@@ -304,7 +304,8 @@ function clipCard(s, i) {
   return `<div class="clip" data-id="${s.id}">
     <div class="frame ${isBusy ? 'busy' : ''}">${frame}</div>
     <div class="meta"><b>#${i + 1} ${esc(s.title)}</b><span class="hint">${state}</span>
-      <button data-anim ${!s.image || isBusy ? 'disabled' : ''}>${s.video ? '↻ Re-animar' : '🎬 Animar'}</button></div></div>`;
+      <button data-anim ${!s.image || isBusy ? 'disabled' : ''}>${s.video ? '↻ Re-animar' : '🎬 Animar'}</button>
+      ${s.video ? `<a class="btn ghost" href="${media(s.video)}" download="escena-${i + 1}.mp4">⬇ Descargar clip</a>` : ''}</div></div>`;
 }
 
 function renderClips() {

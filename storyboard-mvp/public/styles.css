@@ -36,7 +36,7 @@ input[type=checkbox] { width: auto; margin: 0; }
 textarea { resize: vertical; }
 .top select { width: auto; margin: 0; }
 button, .btn { background: var(--accent); color: var(--accent-ink); border: 0; border-radius: 8px; padding: 8px 14px; font: inherit; font-weight: 600; cursor: pointer; display: inline-block; margin: 0; }
-button.ghost { background: transparent; color: var(--text); border: 1px solid var(--line); }
+button.ghost, .btn.ghost { background: transparent; color: var(--text); border: 1px solid var(--line); text-align: center; text-decoration: none; }
 button.danger { color: var(--danger); }
 button:disabled { opacity: .5; cursor: wait; }
 .status { min-height: 1.2em; color: var(--muted); }
