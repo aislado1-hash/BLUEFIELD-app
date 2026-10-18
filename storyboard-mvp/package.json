@@ -1,0 +1,12 @@
+{
+  "name": "camionera-storyboard-mvp",
+  "version": "0.1.0",
+  "private": true,
+  "description": "MVP: storyboards de rutinas de camioneras con imágenes (Nano Banana) y animación (Veo) vía Gemini API.",
+  "type": "module",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "start": "node server.mjs",
+    "test": "node --test test/*.test.mjs"
+  }
+}

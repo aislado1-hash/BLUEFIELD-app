@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Storyboard Camioneras</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="top">
+    <div class="brand">🚛 <b>Storyboard Camioneras</b></div>
+    <select id="projectSelect" title="Proyecto"></select>
+    <button id="newProject" class="ghost">+ Nuevo</button>
+    <span id="connBadge" class="badge">…</span>
+  </header>
+
+  <nav class="steps" id="steps">
+    <button data-step="conn">1 · Conexión</button>
+    <button data-step="char">2 · Camionera</button>
+    <button data-step="truck">3 · Camión por dentro</button>
+    <button data-step="board">4 · Rutina y storyboard</button>
+    <button data-step="video">5 · Animar y ver</button>
+  </nav>
+
+  <main>
+    <!-- 1. Conexión -->
+    <section data-panel="conn">
+      <h2>Conecta tu cuenta de Google</h2>
+      <p class="hint">Google Flow no ofrece una API pública, así que la app usa la <b>Gemini API</b> de tu misma cuenta de Google:
+        son los mismos modelos de Flow (<b>Nano Banana</b> para imágenes y <b>Veo</b> para video).
+        Crea una API key en <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Google AI Studio</a> y pégala aquí.
+        Veo requiere facturación activada en el proyecto de Google Cloud de la key.</p>
+      <div class="card">
+        <label>API key de Gemini
+          <input id="apiKey" type="password" placeholder="AIza…" autocomplete="off">
+        </label>
+        <div class="row">
+          <button id="saveKey">Guardar y probar</button>
+          <button id="clearKey" class="ghost">Desconectar</button>
+          <label class="check"><input id="mockToggle" type="checkbox"> Modo demo (sin gastar créditos)</label>
+        </div>
+        <p id="connStatus" class="status"></p>
+      </div>
+      <details class="card">
+        <summary>Modelos (avanzado)</summary>
+        <div class="grid3">
+          <label>Texto (storyboard)<input id="mText" list="dlText"></label>
+          <label>Imagen<input id="mImage" list="dlImage"></label>
+          <label>Video<input id="mVideo" list="dlVideo"></label>
+        </div>
+        <datalist id="dlText"></datalist><datalist id="dlImage"></datalist><datalist id="dlVideo"></datalist>
+        <p class="hint">Ej.: imagen <code>gemini-3-pro-image-preview</code> (Nano Banana Pro) · video <code>veo-3.1-fast-generate-preview</code> (más barato).</p>
+        <button id="saveModels" class="ghost">Guardar modelos</button>
+      </details>
+    </section>
+
+    <!-- 2. Personaje -->
+    <section data-panel="char">
+      <h2>Tu camionera: hoja de estilo</h2>
+      <p class="hint">Sube su hoja de estilo (vistas de frente/perfil/espalda, primeros planos, vestuario). Es la referencia que mantiene su cara y su ropa iguales en todas las escenas. Si no tienes una, descríbela y la generamos.</p>
+      <div class="split">
+        <div class="card">
+          <label>Nombre<input data-bind="character.name" placeholder="Ej.: Rosy"></label>
+          <label>¿Cómo es? (rostro, pelo, edad, complexión, tatuajes…)
+            <textarea data-bind="character.description" rows="4" placeholder="Mujer latina de 30 años, pelo castaño largo en trenza, pecas, complexión atlética, tatuaje pequeño en el antebrazo"></textarea></label>
+          <label>¿Cómo va vestida?
+            <textarea data-bind="character.outfit" rows="3" placeholder="Gorra trucker negra, camisa de franela roja abierta, camiseta blanca, jeans, botas de trabajo marrones, chaleco reflectante en el exterior"></textarea></label>
+        </div>
+        <div class="card drop" id="sheetBox">
+          <div class="preview" id="sheetPreview"></div>
+          <div class="row">
+            <label class="btn">Subir hoja de estilo<input type="file" accept="image/*" id="sheetFile" hidden></label>
+            <button id="sheetGen" class="ghost">✨ Generar desde la descripción</button>
+            <button id="sheetDel" class="ghost danger">Quitar</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. Camión -->
+    <section data-panel="truck">
+      <h2>¿Cómo es el camión por dentro?</h2>
+      <p class="hint">Sube fotos reales del interior (cabina, tablero, litera) o descríbelo y generamos una referencia. Se usan hasta 2 fotos como set en cada escena.</p>
+      <div class="split">
+        <div class="card">
+          <label>Descripción del interior
+            <textarea data-bind="truck.description" rows="7" placeholder="Freightliner Cascadia 2022, cabina con litera alta. Tablero gris oscuro, volante de cuero negro, asientos de piel color camel. Litera con edredón a cuadros rojos, luces LED cálidas, cortina negra, mini refrigerador, cafetera de 12V y fotos pegadas en el techo."></textarea></label>
+        </div>
+        <div class="card">
+          <div class="thumbs" id="truckThumbs"></div>
+          <div class="row">
+            <label class="btn">Subir fotos<input type="file" accept="image/*" id="truckFile" multiple hidden></label>
+            <button id="truckGen" class="ghost">✨ Generar referencia</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. Storyboard -->
+    <section data-panel="board">
+      <h2>Rutina y storyboard</h2>
+      <div class="card">
+        <label>¿Qué rutina quieres contar?
+          <textarea data-bind="routine.brief" rows="3" placeholder="Un día de invierno cruzando Texas: se despierta a las 5, café en la cabina, inspección con nieve, carretera, ducha en la parada de camiones, cena en la litera viendo series."></textarea></label>
+        <div class="grid3">
+          <label>Nº de escenas<input type="number" min="1" max="12" data-bind="routine.sceneCount"></label>
+          <label>Formato
+            <select data-bind="format.aspectRatio"><option value="9:16">Vertical 9:16 (Reels/TikTok/Shorts)</option><option value="16:9">Horizontal 16:9</option></select></label>
+          <label>Estilo visual<input data-bind="format.style"></label>
+        </div>
+        <div class="row">
+          <button id="genBoard">✨ Crear storyboard</button>
+          <button id="genAllImages" class="ghost">🖼️ Generar todas las imágenes</button>
+          <button id="addScene" class="ghost">+ Escena manual</button>
+          <label class="check"><input id="continuity" type="checkbox" checked> Continuidad con la escena anterior</label>
+        </div>
+        <p id="refWarn" class="status warn"></p>
+      </div>
+      <div id="scenes" class="scenes"></div>
+    </section>
+
+    <!-- 5. Video -->
+    <section data-panel="video">
+      <h2>Animar escenas y ver el video</h2>
+      <div class="card row">
+        <label>Duración por clip
+          <select id="duration"><option>4</option><option>6</option><option selected>8</option></select></label>
+        <button id="animAll">🎬 Animar todas las escenas con imagen</button>
+        <button id="playAll" class="ghost">▶ Reproducir secuencia</button>
+        <button id="exportBtn" class="ghost">⬇ Exportar MP4 final</button>
+      </div>
+      <div id="player" class="player" hidden><video id="playerVideo" playsinline controls></video><img id="playerImg" alt=""><div id="playerCap"></div></div>
+      <p id="finalLink"></p>
+      <div id="clips" class="clips"></div>
+    </section>
+  </main>
+
+  <div id="toast"></div>
+  <script type="module" src="/app.js"></script>
+</body>
+</html>
