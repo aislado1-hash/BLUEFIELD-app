@@ -11,33 +11,61 @@ generas las imágenes de cada escena manteniendo a tu personaje y tu camión, y 
 
 ```bash
 cd storyboard-mvp
+npm install          # instala playwright-core (controla tu Chrome; no descarga otro navegador)
 npm start            # → http://127.0.0.1:5173
 ```
 
-Sin dependencias: solo Node 20+. Para exportar el MP4 final hace falta `ffmpeg` en el PATH.
+Requisitos: Node 20+ y **Google Chrome** instalado. Para exportar el MP4 final hace falta `ffmpeg` en el PATH.
 
-## Conectar la cuenta de Google
+## Modos de generación (pestaña Conexión)
 
-Google Flow **no tiene API pública**. La app usa la **Gemini API** de tu cuenta de Google, que da acceso a los
-mismos modelos que usa Flow:
+### 🌐 Navegador: Google Flow (por defecto, sin APIs)
+
+La app abre un **Chrome real** con un perfil propio (`data/chrome-profile/`) y lo maneja como lo harías tú:
+
+| Paso | Dónde | Qué hace el navegador |
+| --- | --- | --- |
+| Storyboard | gemini.google.com | abre un chat, pega el pedido y lee el JSON de la respuesta |
+| Hoja de estilo / interior del camión / escenas | Flow, modo imagen | sube las referencias, escribe el prompt, pulsa crear y descarga **todas** las variantes (quedan en el historial de la escena) |
+| Animar | Flow, *Frames to Video* | sube la imagen de la escena como primer fotograma, escribe el prompt de movimiento y descarga el clip |
+
+1. Pulsa **Abrir navegador** e inicia sesión con tu cuenta de Google la primera vez (queda guardada).
+2. En Flow abre o crea un proyecto y elige la proporción (9:16 para vertical).
+3. Deja la ventana abierta y trabaja en la app. Las tareas van **en cola, de una en una**; la barra amarilla
+   de arriba dice qué está haciendo el navegador.
+
+**Modo asistido.** La web de Flow cambia a menudo. Si el piloto no encuentra un control (el selector de modo,
+el botón de subir…), la barra te dice qué hacer a mano en la ventana (p. ej. *“elige Frames to Video y pulsa
+Generar”*) y la app captura el resultado igualmente en cuanto aparece. Los resultados se detectan como
+imágenes/videos nuevos en la página, así que no dependen del diseño exacto.
+
+Si Flow cambia un botón, puedes añadir selectores sin tocar código en `data/selectors.json`
+(se prueban antes que los de serie; claves en `lib/browser.mjs` → `DEFAULT_SELECTORS`):
+
+```json
+{ "submit": ["button[aria-label=\"Generar\"]"], "modeOption": { "video": ["text=Fotogramas a vídeo"] } }
+```
+
+Variables: `CHROME_PATH` (ruta a otro Chrome/Chromium), `FLOW_URL`, `GEMINI_URL`.
+
+> ⚠️ Automatizar la web de Flow con tu cuenta usa los créditos de tu plan, pero **no es un uso oficial**:
+> los términos de Google limitan el acceso automatizado y la cuenta podría recibir avisos o límites.
+> Úsalo con moderación (la app ya va de una en una) y bajo tu responsabilidad.
+
+### 🔑 API de Gemini
+
+Mismos modelos con una API key de <https://aistudio.google.com/apikey> (Veo requiere facturación activada).
+Se factura aparte de tu plan de Flow.
 
 | Paso | Modelo por defecto | Alternativas |
 | --- | --- | --- |
-| Storyboard (texto → escenas) | `gemini-2.5-flash` | cualquier Gemini de texto |
+| Storyboard | `gemini-2.5-flash` | cualquier Gemini de texto |
 | Imágenes (Nano Banana) | `gemini-2.5-flash-image` | `gemini-3-pro-image-preview` (Nano Banana Pro) |
-| Animación imagen → video (Veo) | `veo-3.1-generate-preview` | `veo-3.1-fast-generate-preview` (más barato) |
+| Animación (Veo) | `veo-3.1-generate-preview` | `veo-3.1-fast-generate-preview` |
 
-1. Crea una API key en <https://aistudio.google.com/apikey> con tu cuenta de Google.
-2. Veo es de pago: activa la facturación en el proyecto de esa key.
-3. Pega la key en la pestaña **Conexión** (se guarda en `data/settings.json`, que no se sube a git)
-   o arranca con `GEMINI_API_KEY=... npm start`.
+### 🧪 Demo
 
-Sin key, la app funciona en **modo demo**: storyboard de ejemplo, imágenes de marcador y vista previa animada,
-para probar el flujo sin gastar créditos.
-
-> Los créditos de tu plan de Flow (Google AI Pro/Ultra) **no** se consumen aquí: la Gemini API se factura aparte.
-> Existen servicios de terceros que automatizan la web de Flow, pero no son oficiales y pueden ir contra los
-> términos de Google, así que la MVP no los usa. El cliente está aislado en `lib/gemini.mjs` por si se cambia de proveedor.
+Storyboard de ejemplo, imágenes de marcador y vista previa animada, para probar el flujo sin generar nada.
 
 ## Cómo mantiene la consistencia
 
@@ -55,15 +83,18 @@ volver a una versión anterior desde el historial, reordenar y borrar.
 | Ruta | Qué es |
 | --- | --- |
 | `server.mjs` | Servidor HTTP: API JSON + estáticos + media. Un candado por proyecto para escrituras concurrentes |
+| `lib/browser.mjs` | Piloto de navegador (Playwright + tu Chrome): Flow y Gemini web, cola de tareas, modo asistido |
 | `lib/gemini.mjs` | Cliente REST: `generateContent` (texto/imagen) y `predictLongRunning` + polling (Veo) |
 | `lib/prompts.mjs` | Todos los prompts y el esquema JSON del storyboard |
 | `lib/store.mjs` | Ajustes y proyectos en `data/` (JSON + `media/`) |
 | `lib/mock.mjs` | Modo demo |
 | `public/` | UI (HTML + JS + CSS sin frameworks) |
-| `test/` | `npm test`: flujo completo en modo demo y forma de las peticiones a Gemini/Veo |
+| `test/` | `npm test`: flujo demo, peticiones a Gemini/Veo y el piloto contra réplicas locales de Flow y Gemini (`test/fixtures/`) |
 
 ## Límites conocidos de la MVP
 
 - Un solo usuario, local (escucha en `127.0.0.1`). Para publicarlo haría falta login y guardar la key en el servidor.
 - Los clips de Veo duran 4–8 s; el export une los clips tal cual (sin transiciones, música ni subtítulos).
 - Los videos generados por Veo se guardan en local al terminar; Google los borra de sus servidores a los 2 días.
+- El piloto se probó contra réplicas de Flow y Gemini, no contra la web real: la primera vez revisa la barra de
+  estado y, si algún paso queda en modo asistido, añade el selector correcto en `data/selectors.json`.

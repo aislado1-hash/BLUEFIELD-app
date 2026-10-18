@@ -1,4 +1,4 @@
-// Servidor local de la MVP: API JSON + archivos estáticos. Sin dependencias externas.
+// Servidor local de la MVP: API JSON + archivos estáticos + piloto de navegador.
 import http from 'node:http';
 import { readFile, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
@@ -10,6 +10,7 @@ import * as store from './lib/store.mjs';
 import * as gemini from './lib/gemini.mjs';
 import * as P from './lib/prompts.mjs';
 import { mockStoryboard, mockImage } from './lib/mock.mjs';
+import { BrowserDriver } from './lib/browser.mjs';
 
 const PORT = Number(process.env.PORT || 5173);
 const HOST = process.env.HOST || '127.0.0.1';
@@ -32,58 +33,76 @@ function update(id, fn) {
   return next;
 }
 
+const browser = new BrowserDriver({
+  profileDir: path.join(store.DATA_DIR, 'chrome-profile'),
+  selectorsFile: path.join(store.DATA_DIR, 'selectors.json'),
+});
+
 async function ctx() {
   const s = await store.getSettings();
-  return { s, mock: s.mock || !s.apiKey };
+  return { s, mode: store.isMock(s) ? 'demo' : s.provider };
 }
 
 // ---------- generación ----------
 async function referenceImages(p, { scene, continuity }) {
   const refs = [];
-  if (p.character.sheetImage) refs.push({ label: P.REF_LABELS.sheet, ...(await store.loadMedia(p.id, p.character.sheetImage)) });
-  for (const img of p.truck.images.slice(0, 2)) refs.push({ label: P.REF_LABELS.truck, ...(await store.loadMedia(p.id, img)) });
+  const add = async (label, rel) => refs.push({ label, file: path.join(store.mediaDir(p.id), path.basename(rel)), ...(await store.loadMedia(p.id, rel)) });
+  if (p.character.sheetImage) await add(P.REF_LABELS.sheet, p.character.sheetImage);
+  for (const img of p.truck.images.slice(0, 2)) await add(P.REF_LABELS.truck, img);
   if (continuity && scene) {
     const idx = p.scenes.findIndex((s) => s.id === scene.id);
     const prev = p.scenes.slice(0, idx).reverse().find((s) => s.image);
-    if (prev) refs.push({ label: P.REF_LABELS.prev, ...(await store.loadMedia(p.id, prev.image)) });
+    if (prev) await add(P.REF_LABELS.prev, prev.image);
   }
   // los SVG del modo demo no sirven de referencia para el modelo
   return refs.filter((r) => r.mimeType !== 'image/svg+xml');
 }
 
-async function genImage(p, prompt, refs, mockTitle, mockText) {
-  const { s, mock } = await ctx();
-  if (mock) return mockImage(mockTitle, mockText, p.format.aspectRatio);
-  return gemini.generateImage(s.apiKey, s.models.image, prompt, refs, p.format.aspectRatio);
+/** Devuelve una o varias variantes [{mimeType, buffer}] (Flow suele dar varias por prompt). */
+async function genImages(p, prompt, refs, label, mockText) {
+  const { s, mode } = await ctx();
+  if (mode === 'demo') return [mockImage(label, mockText, p.format.aspectRatio)];
+  if (mode === 'browser') {
+    const fullPrompt = [prompt, P.attachedRefsNote(refs.map((r) => r.label)), `Aspect ratio ${p.format.aspectRatio}.`].filter(Boolean).join('\n');
+    const job = browser.enqueue(`Imagen: ${label}`, (step) => browser.flowGenerate({ mode: 'image', prompt: fullPrompt, files: refs.map((r) => r.file) }, step));
+    return job.promise;
+  }
+  return [await gemini.generateImage(s.apiKey, s.models.image, prompt, refs, p.format.aspectRatio)];
+}
+
+async function saveAll(id, prefix, images) {
+  const rels = [];
+  for (const img of images) rels.push(await store.saveMedia(id, prefix, img.buffer, img.mimeType));
+  return rels;
 }
 
 async function generateCharacterSheet(id) {
   const p = await store.getProject(id);
   if (!p.character.description && !p.character.outfit) throw httpError(400, 'Describe primero a tu camionera (aspecto y ropa).');
-  const img = await genImage({ ...p, format: { ...p.format, aspectRatio: '16:9' } }, P.characterSheetPrompt(p), [],
-    `Hoja de estilo: ${p.character.name || 'camionera'}`, `${p.character.description} ${p.character.outfit}`);
-  const rel = await store.saveMedia(id, 'sheet', img.buffer, img.mimeType);
-  return update(id, (q) => { q.character.sheetImage = rel; });
+  const [first] = await saveAll(id, 'sheet', await genImages({ ...p, format: { ...p.format, aspectRatio: '16:9' } }, P.characterSheetPrompt(p), [],
+    `Hoja de estilo: ${p.character.name || 'camionera'}`, `${p.character.description} ${p.character.outfit}`));
+  return update(id, (q) => { q.character.sheetImage = first; });
 }
 
 async function generateTruckImage(id) {
   const p = await store.getProject(id);
   if (!p.truck.description) throw httpError(400, 'Describe primero cómo es el camión por dentro.');
-  const img = await genImage({ ...p, format: { ...p.format, aspectRatio: '16:9' } }, P.truckInteriorPrompt(p), [],
-    'Interior del camión', p.truck.description);
-  const rel = await store.saveMedia(id, 'truck', img.buffer, img.mimeType);
-  return update(id, (q) => { q.truck.images.push(rel); });
+  const [first] = await saveAll(id, 'truck', await genImages({ ...p, format: { ...p.format, aspectRatio: '16:9' } }, P.truckInteriorPrompt(p), [],
+    'Interior del camión', p.truck.description));
+  return update(id, (q) => { q.truck.images.push(first); });
 }
 
 async function generateStoryboard(id) {
   const p = await store.getProject(id);
   const count = Math.max(1, Math.min(12, Number(p.routine.sceneCount) || 6));
   p.routine.sceneCount = count;
-  const { s, mock } = await ctx();
-  const scenes = mock
-    ? mockStoryboard(count)
-    : (await gemini.generateJson(s.apiKey, s.models.text, P.storyboardPrompt(p), P.STORYBOARD_SCHEMA)).scenes;
-  return update(id, (q) => { q.scenes = scenes.slice(0, count).map((sc) => store.newScene(sc)); q.finalVideo = null; });
+  const { s, mode } = await ctx();
+  let scenes;
+  if (mode === 'demo') scenes = mockStoryboard(count);
+  else if (mode === 'browser') scenes = (await browser.enqueue('Storyboard en Gemini', (step) => browser.geminiStoryboard(P.storyboardChatPrompt(p), step)).promise).scenes;
+  else scenes = (await gemini.generateJson(s.apiKey, s.models.text, P.storyboardPrompt(p), P.STORYBOARD_SCHEMA)).scenes;
+  const clean = scenes.slice(0, count).map((sc) => Object.fromEntries(Object.entries(sc).map(([k, v]) => [k, String(v ?? '')])));
+  return update(id, (q) => { q.scenes = clean.map((sc) => store.newScene(sc)); q.finalVideo = null; });
 }
 
 async function generateSceneImage(id, sceneId, { continuity = true } = {}) {
@@ -95,12 +114,11 @@ async function generateSceneImage(id, sceneId, { continuity = true } = {}) {
     truckRefs: refs.filter((r) => r.label === P.REF_LABELS.truck).length,
     hasPrev: refs.some((r) => r.label === P.REF_LABELS.prev),
   });
-  const img = await genImage(p, prompt, refs, `${scene.time} · ${scene.title}`, scene.action);
-  const rel = await store.saveMedia(id, `scene-${sceneId}`, img.buffer, img.mimeType);
+  const rels = await saveAll(id, `scene-${sceneId}`, await genImages(p, prompt, refs, `${scene.time} · ${scene.title}`, scene.action));
   return update(id, (q) => {
     const sc = store.findScene(q, sceneId);
-    sc.image = rel;
-    sc.imageHistory = [rel, ...sc.imageHistory.filter((x) => x !== rel)].slice(0, 8);
+    sc.image = rels[0];
+    sc.imageHistory = [...rels, ...sc.imageHistory.filter((x) => !rels.includes(x))].slice(0, 12);
     sc.video = null; sc.videoJob = null;
   });
 }
@@ -109,10 +127,15 @@ async function startSceneVideo(id, sceneId, { durationSeconds = 8 } = {}) {
   const p = await store.getProject(id);
   const scene = store.findScene(p, sceneId);
   if (!scene.image) throw httpError(400, 'Primero genera la imagen de esta escena.');
-  const { s, mock } = await ctx();
+  const { s, mode } = await ctx();
   let job;
-  if (mock || scene.image.endsWith('.svg')) {
+  if (mode === 'demo' || scene.image.endsWith('.svg')) {
     job = { status: 'mock', message: 'Modo demo: vista previa animada sin video real.' };
+  } else if (mode === 'browser') {
+    const file = path.join(store.mediaDir(id), path.basename(scene.image));
+    const b = browser.enqueue(`Video: ${scene.title}`, (step) => browser.flowGenerate({ mode: 'video', prompt: P.sceneMotionPrompt(p, scene), files: [file] }, step));
+    b.promise.catch(() => {}); // el error se consulta por polling
+    job = { status: 'running', browserJob: b.id, message: b.step, startedAt: new Date().toISOString() };
   } else {
     const image = await store.loadMedia(id, scene.image);
     const operation = await gemini.startVideo(s.apiKey, s.models.video, {
@@ -128,15 +151,30 @@ async function pollSceneVideo(id, sceneId) {
   const scene = store.findScene(p, sceneId);
   const job = scene.videoJob;
   if (!job || job.status !== 'running') return p;
+  const fail = (message) => update(id, (q) => { const sc = store.findScene(q, sceneId); sc.videoJob = { status: 'error', message }; });
+  const finish = async (buffers) => {
+    const rels = [];
+    for (const b of buffers) rels.push(await store.saveMedia(id, `video-${sceneId}`, b, 'video/mp4'));
+    return update(id, (q) => { const sc = store.findScene(q, sceneId); sc.video = rels[0]; sc.videoAlternatives = rels.slice(1); sc.videoJob = { status: 'done' }; });
+  };
+
+  if (job.browserJob) {
+    const b = browser.getJob(job.browserJob);
+    if (!b) return fail('Se perdió la tarea del navegador (¿se reinició el servidor?). Vuelve a animar.');
+    if (b.status === 'error') return fail(b.error);
+    if (b.status === 'done') return finish(b.result.map((r) => r.buffer));
+    scene.videoJob.message = b.step; // progreso en vivo, sin guardar
+    return p;
+  }
+
   const { s } = await ctx();
   try {
     const r = await gemini.pollVideo(s.apiKey, job.operation);
     if (!r.done) return p;
-    const rel = await store.saveMedia(id, `video-${sceneId}`, r.buffer, 'video/mp4');
-    return update(id, (q) => { const sc = store.findScene(q, sceneId); sc.video = rel; sc.videoJob = { status: 'done' }; });
+    return finish([r.buffer]);
   } catch (e) {
     if (e.status === 401) throw e;
-    return update(id, (q) => { const sc = store.findScene(q, sceneId); sc.videoJob = { status: 'error', message: e.message }; });
+    return fail(e.message);
   }
 }
 
@@ -173,6 +211,14 @@ const routes = [
     if (!s.apiKey) throw httpError(400, 'No hay API key guardada.');
     return { ok: true, available: await gemini.testConnection(s.apiKey) };
   }],
+
+  ['GET', /^\/api\/browser$/, () => browser.status()],
+  ['POST', /^\/api\/browser\/open$/, async () => { await browser.open(); return browser.status(); }],
+  ['POST', /^\/api\/browser\/close$/, async () => { await browser.close(); return browser.status(); }],
+
+  ['GET', /^\/api\/browser$/, () => browser.status()],
+  ['POST', /^\/api\/browser\/open$/, async () => { await browser.open(); return browser.status(); }],
+  ['POST', /^\/api\/browser\/close$/, async () => { await browser.close(); return browser.status(); }],
 
   ['GET', /^\/api\/projects$/, () => store.listProjects()],
   ['POST', /^\/api\/projects$/, (_, b) => store.saveProject(store.newProject(b.name))],
@@ -276,7 +322,10 @@ const server = http.createServer(async (req, res) => {
   }
 });
 
+// las generaciones en el navegador pueden tardar minutos (y hacer cola)
+server.requestTimeout = 0;
+
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   server.listen(PORT, HOST, () => console.log(`Storyboard camioneras → http://${HOST}:${PORT}`));
 }
-export { server };
+export { server, browser };

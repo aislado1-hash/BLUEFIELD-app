@@ -1,0 +1,18 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Fake Gemini</title></head>
+<body>
+<div class="chat"></div>
+<div contenteditable="true" id="box" style="min-height:40px;border:1px solid"></div>
+<button aria-label="Send message" id="send">send</button>
+<script>
+document.getElementById('send').onclick = () => {
+  const n = (document.getElementById('box').innerText.match(/EXACTAMENTE (\d+)/) || [])[1] || 2;
+  const scenes = Array.from({ length: Number(n) }, (_, i) => ({ title: 'Escena ' + (i + 1), time: '0' + (5 + i) + ':00', location: 'litera', action: 'acción', camera: 'plano medio', imagePrompt: 'img', motionPrompt: 'move' }));
+  const json = '```json\n' + JSON.stringify({ scenes }, null, 2) + '\n```';
+  const m = document.createElement('message-content'); document.querySelector('.chat').append(m);
+  // "streaming" en dos trozos
+  m.textContent = json.slice(0, 40);
+  setTimeout(() => { m.textContent = json; }, 800);
+};
+</script>
+</body></html>

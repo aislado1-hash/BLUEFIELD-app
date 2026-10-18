@@ -30,9 +30,13 @@ async function writeJson(file, value) {
 }
 
 // ---------- ajustes ----------
+export const PROVIDERS = ['browser', 'api', 'demo'];
+
 export async function getSettings() {
   const s = await readJson(SETTINGS_FILE, {});
   return {
+    // 'browser' = Google Flow + Gemini web en un Chrome real · 'api' = Gemini API · 'demo' = sin generar
+    provider: PROVIDERS.includes(s.provider) ? s.provider : 'browser',
     apiKey: s.apiKey || process.env.GEMINI_API_KEY || '',
     mock: s.mock ?? false,
     models: { ...DEFAULT_MODELS, ...(s.models || {}) },
@@ -44,19 +48,23 @@ export async function saveSettings(patch) {
   const next = { ...current };
   if (typeof patch.apiKey === 'string') next.apiKey = patch.apiKey.trim();
   if (typeof patch.mock === 'boolean') next.mock = patch.mock;
+  if (PROVIDERS.includes(patch.provider)) next.provider = patch.provider;
   if (patch.models) next.models = { ...(current.models || {}), ...patch.models };
   await writeJson(SETTINGS_FILE, next);
   return getSettings();
 }
 
+export const isMock = (s) => s.provider === 'demo' || (s.provider === 'api' && (s.mock || !s.apiKey));
+
 export function publicSettings(s) {
   const k = s.apiKey;
   return {
+    provider: s.provider,
     connected: Boolean(k),
     keyPreview: k ? `${k.slice(0, 4)}…${k.slice(-4)}` : null,
     mock: s.mock,
-    // sin key, la app funciona en modo demo
-    effectiveMock: s.mock || !k,
+    // en modo API sin key, la app funciona en modo demo
+    effectiveMock: isMock(s),
     models: s.models,
   };
 }

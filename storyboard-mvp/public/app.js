@@ -42,16 +42,47 @@ function show(step) {
 $('#steps').addEventListener('click', (e) => e.target.dataset.step && show(e.target.dataset.step));
 
 // ---------- conexión ----------
+const PROVIDER_NAMES = { browser: 'Navegador (Flow)', api: 'API de Gemini', demo: 'Demo' };
+
 function renderSettings() {
   const b = $('#connBadge');
-  b.className = 'badge ' + (settings.effectiveMock ? 'demo' : 'ok');
-  b.textContent = settings.effectiveMock ? 'Modo demo' : `Conectado ${settings.keyPreview}`;
-  $('#mockToggle').checked = settings.mock;
+  const mode = settings.effectiveMock ? 'demo' : settings.provider;
+  b.className = 'badge ' + (mode === 'demo' ? 'demo' : 'ok');
+  b.textContent = mode === 'api' ? `API ${settings.keyPreview}` : (settings.provider === 'api' ? 'Demo (falta API key)' : PROVIDER_NAMES[mode]);
+  $$('#providers input').forEach((r) => { r.checked = r.value === settings.provider; });
+  $$('[data-for]').forEach((el) => { el.hidden = el.dataset.for !== settings.provider; });
   $('#apiKey').placeholder = settings.connected ? `Guardada: ${settings.keyPreview}` : 'AIza…';
   $('#mText').value = settings.models.text;
   $('#mImage').value = settings.models.image;
   $('#mVideo').value = settings.models.video;
+  pollBrowser();
 }
+
+$('#providers').addEventListener('change', (e) => run(null, async () => {
+  settings = await api('POST', '/api/settings', { provider: e.target.value });
+  renderSettings();
+  if (settings.provider === 'api' && settings.connected) testKey();
+}));
+
+// ---------- navegador ----------
+let browserTimer = null;
+function renderBrowser(st) {
+  const el = $('#browserStatus');
+  if (!st.open) { el.className = 'status'; el.textContent = 'Navegador cerrado. Se abrirá solo al generar, o ábrelo ahora para iniciar sesión.'; }
+  else if (st.needsLogin) { el.className = 'status warn'; el.textContent = 'Inicia sesión con tu cuenta de Google en la ventana del navegador.'; }
+  else { el.className = 'status ok'; el.textContent = `✔ Navegador abierto en ${st.url || '…'}`; }
+  const act = $('#activity');
+  act.hidden = !st.current;
+  if (st.current) act.textContent = `🌐 ${st.current.label} — ${st.current.step}${st.queued ? ` · ${st.queued} en cola` : ''}`;
+}
+async function pollBrowser() {
+  clearTimeout(browserTimer);
+  if (settings.provider !== 'browser') { $('#activity').hidden = true; return; }
+  try { renderBrowser(await api('GET', '/api/browser')); } catch {}
+  browserTimer = setTimeout(pollBrowser, 2000);
+}
+$('#browserOpen').onclick = (e) => run(e.target, async () => { renderBrowser(await api('POST', '/api/browser/open')); });
+$('#browserClose').onclick = (e) => run(e.target, async () => { renderBrowser(await api('POST', '/api/browser/close')); });
 
 async function testKey() {
   const st = $('#connStatus');
@@ -74,7 +105,6 @@ $('#saveKey').onclick = (e) => run(e.target, async () => {
   await testKey();
 });
 $('#clearKey').onclick = (e) => run(e.target, async () => { settings = await api('POST', '/api/settings', { apiKey: '' }); renderSettings(); $('#connStatus').textContent = 'Desconectado.'; });
-$('#mockToggle').onchange = (e) => run(null, async () => { settings = await api('POST', '/api/settings', { mock: e.target.checked }); renderSettings(); });
 $('#saveModels').onclick = (e) => run(e.target, async () => {
   settings = await api('POST', '/api/settings', { models: { text: $('#mText').value.trim(), image: $('#mImage').value.trim(), video: $('#mVideo').value.trim() } });
   renderSettings(); toast('Modelos guardados');
@@ -268,7 +298,7 @@ function clipCard(s, i) {
   let state = s.image ? 'Lista para animar' : 'Sin imagen';
   if (s.video) { frame = `<video src="${media(s.video)}" muted loop playsinline controls preload="metadata"></video>`; state = '✔ Video listo'; }
   else if (job?.status === 'mock') { frame = `<img class="kenburns" src="${media(s.image)}" alt="">`; state = 'Vista previa (demo)'; }
-  else if (job?.status === 'running') state = '⏳ Veo está animando… (1-6 min)';
+  else if (job?.status === 'running') state = `⏳ ${esc(job.message || 'Animando…')} (1-6 min)`;
   else if (job?.status === 'error') state = `✖ ${esc(job.message)}`;
   const isBusy = job?.status === 'running' || busy.has('vid:' + s.id);
   return `<div class="clip" data-id="${s.id}">
@@ -348,6 +378,6 @@ function renderAll() {
   await loadProjects();
   let step = null;
   try { step = localStorage.getItem('step'); } catch {}
-  show(step || (settings.connected ? 'char' : 'conn'));
-  if (settings.connected) testKey();
+  show(step || 'conn');
+  if (settings.provider === 'api' && settings.connected) testKey();
 })().catch((e) => toast(e.message, true));

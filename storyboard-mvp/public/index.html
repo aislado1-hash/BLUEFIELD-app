@@ -13,6 +13,7 @@
     <button id="newProject" class="ghost">+ Nuevo</button>
     <span id="connBadge" class="badge">…</span>
   </header>
+  <div id="activity" class="activity" hidden></div>
 
   <nav class="steps" id="steps">
     <button data-step="conn">1 · Conexión</button>
@@ -25,33 +26,55 @@
   <main>
     <!-- 1. Conexión -->
     <section data-panel="conn">
-      <h2>Conecta tu cuenta de Google</h2>
-      <p class="hint">Google Flow no ofrece una API pública, así que la app usa la <b>Gemini API</b> de tu misma cuenta de Google:
-        son los mismos modelos de Flow (<b>Nano Banana</b> para imágenes y <b>Veo</b> para video).
-        Crea una API key en <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Google AI Studio</a> y pégala aquí.
-        Veo requiere facturación activada en el proyecto de Google Cloud de la key.</p>
-      <div class="card">
+      <h2>¿Cómo quieres generar?</h2>
+      <div class="providers" id="providers">
+        <label class="provider"><input type="radio" name="provider" value="browser">
+          <b>🌐 Navegador: Google Flow</b><span>Abre un Chrome real con tu cuenta y usa Flow y Gemini como lo harías tú. Sin APIs. Gasta los créditos de tu plan de Flow.</span></label>
+        <label class="provider"><input type="radio" name="provider" value="api">
+          <b>🔑 API de Gemini</b><span>Mismos modelos (Nano Banana y Veo) con una API key. Más rápido, pero se factura aparte.</span></label>
+        <label class="provider"><input type="radio" name="provider" value="demo">
+          <b>🧪 Demo</b><span>Recorre todo el flujo sin generar nada.</span></label>
+      </div>
+
+      <div class="card" data-for="browser">
+        <h3>Navegador</h3>
+        <ol class="hint">
+          <li>Pulsa <b>Abrir navegador</b>: se abre Google Chrome con un perfil propio de esta app.</li>
+          <li>La primera vez, <b>inicia sesión con tu cuenta de Google</b> en esa ventana (queda guardada para la próxima).</li>
+          <li>En Flow, <b>crea o abre un proyecto</b> y elige la proporción (9:16 para vertical). Deja la ventana abierta.</li>
+          <li>Trabaja en esta app: cada vez que generes, verás al navegador escribir los prompts, subir tus referencias y descargar los resultados.</li>
+        </ol>
+        <p class="hint">Si algún paso no se puede automatizar (Flow cambia su web a menudo), aquí verás qué hacer a mano en la ventana y la app recogerá el resultado igualmente.</p>
+        <div class="row">
+          <button id="browserOpen">Abrir navegador</button>
+          <button id="browserClose" class="ghost">Cerrar navegador</button>
+        </div>
+        <p id="browserStatus" class="status"></p>
+      </div>
+
+      <div class="card" data-for="api">
+        <h3>API de Gemini</h3>
+        <p class="hint">Crea una API key en <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Google AI Studio</a> y pégala aquí. Veo requiere facturación activada.</p>
         <label>API key de Gemini
           <input id="apiKey" type="password" placeholder="AIza…" autocomplete="off">
         </label>
         <div class="row">
           <button id="saveKey">Guardar y probar</button>
           <button id="clearKey" class="ghost">Desconectar</button>
-          <label class="check"><input id="mockToggle" type="checkbox"> Modo demo (sin gastar créditos)</label>
         </div>
         <p id="connStatus" class="status"></p>
+        <details>
+          <summary>Modelos (avanzado)</summary>
+          <div class="grid3">
+            <label>Texto (storyboard)<input id="mText" list="dlText"></label>
+            <label>Imagen<input id="mImage" list="dlImage"></label>
+            <label>Video<input id="mVideo" list="dlVideo"></label>
+          </div>
+          <datalist id="dlText"></datalist><datalist id="dlImage"></datalist><datalist id="dlVideo"></datalist>
+          <p class="hint">Ej.: imagen <code>gemini-3-pro-image-preview</code> (Nano Banana Pro) · video <code>veo-3.1-fast-generate-preview</code> (más barato).</p>
+          <button id="saveModels" class="ghost">Guardar modelos</button>
+        </details>
       </div>
-      <details class="card">
-        <summary>Modelos (avanzado)</summary>
-        <div class="grid3">
-          <label>Texto (storyboard)<input id="mText" list="dlText"></label>
-          <label>Imagen<input id="mImage" list="dlImage"></label>
-          <label>Video<input id="mVideo" list="dlVideo"></label>
-        </div>
-        <datalist id="dlText"></datalist><datalist id="dlImage"></datalist><datalist id="dlVideo"></datalist>
-        <p class="hint">Ej.: imagen <code>gemini-3-pro-image-preview</code> (Nano Banana Pro) · video <code>veo-3.1-fast-generate-preview</code> (más barato).</p>
-        <button id="saveModels" class="ghost">Guardar modelos</button>
-      </details>
     </section>
 
     <!-- 2. Personaje -->

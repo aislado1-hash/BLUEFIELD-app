@@ -24,7 +24,8 @@ const call = async (method, url, body) => {
 const PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQIAX8jx0gAAAABJRU5ErkJggg==';
 
 test('flujo demo: personaje, camión, storyboard, imágenes y animación', async () => {
-  const s = await call('GET', '/api/settings');
+  assert.equal((await call('GET', '/api/settings')).provider, 'browser', 'el navegador es el modo por defecto');
+  const s = await call('POST', '/api/settings', { provider: 'demo' });
   assert.equal(s.effectiveMock, true);
 
   let p = await call('POST', '/api/projects', { name: 'Test' });

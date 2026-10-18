@@ -1,0 +1,42 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Fake Flow</title></head>
+<body>
+<!-- Réplica mínima de Google Flow para probar el piloto sin cuenta real -->
+<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQIAX8jx0gAAAABJRU5ErkJggg==" width="32" alt="avatar">
+<div id="landing"><button id="np">New project</button></div>
+<div id="project" hidden>
+  <button role="combobox" id="mode">Text to Video</button>
+  <ul id="opts" hidden>
+    <li role="option">Text to Video</li><li role="option">Frames to Video</li><li role="option">Create Image</li>
+  </ul>
+  <input type="file" id="file" multiple accept="image/*" style="display:none">
+  <div id="crop" hidden><button>Crop and Save</button></div>
+  <textarea id="prompt" placeholder="Describe tu video"></textarea>
+  <button id="go"><i>arrow_forward</i></button>
+  <div id="results"></div>
+</div>
+<script>
+window.__log = [];
+const $ = (s) => document.querySelector(s);
+let mode = 'Text to Video', files = [], cropped = false;
+$('#np').onclick = () => { $('#landing').hidden = true; $('#project').hidden = false; };
+$('#mode').onclick = () => { $('#opts').hidden = false; };
+document.querySelectorAll('[role=option]').forEach((o) => o.onclick = () => { mode = o.textContent; $('#mode').textContent = mode; $('#opts').hidden = true; });
+$('#file').onchange = (e) => { files = [...e.target.files].map((f) => f.name); if (mode === 'Frames to Video') $('#crop').hidden = false; };
+$('#crop').querySelector('button').onclick = () => { cropped = true; $('#crop').hidden = true; };
+function makeImg(color) {
+  const c = document.createElement('canvas'); c.width = 576; c.height = 1024;
+  const g = c.getContext('2d'); g.fillStyle = color; g.fillRect(0, 0, 576, 1024);
+  return new Promise((ok) => c.toBlob((b) => ok(URL.createObjectURL(b)), 'image/png'));
+}
+$('#go').onclick = async () => {
+  window.__log.push({ mode, prompt: $('#prompt').value, files, cropped });
+  await new Promise((r) => setTimeout(r, 1200));
+  if (mode === 'Create Image') {
+    for (const color of ['#c33', '#36c']) { const i = document.createElement('img'); i.src = await makeImg(color); $('#results').append(i); }
+  } else {
+    const v = document.createElement('video'); v.src = '/clip.mp4?' + Date.now(); $('#results').append(v);
+  }
+};
+</script>
+</body></html>

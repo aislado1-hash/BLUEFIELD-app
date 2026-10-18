@@ -79,3 +79,14 @@ button:disabled { opacity: .5; cursor: wait; }
 #toast { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; gap: 6px; z-index: 10; }
 #toast div { background: #000e; border: 1px solid var(--line); padding: 8px 14px; border-radius: 8px; max-width: 90vw; }
 #toast div.err { border-color: var(--danger); }
+
+h3 { margin: 0 0 8px; font-size: 16px; }
+.providers { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 12px 0; }
+@media (max-width: 800px) { .providers { grid-template-columns: 1fr; } }
+.provider { display: flex; flex-direction: column; gap: 4px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px; margin: 0; cursor: pointer; color: var(--text); font-size: 14px; }
+.provider input { position: absolute; opacity: 0; pointer-events: none; }
+.provider span { color: var(--muted); font-size: 13px; }
+.provider:has(input:checked) { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+.activity { position: sticky; top: 53px; z-index: 4; background: #2a1d05; color: #fde68a; border-bottom: 1px solid #5b3b07; padding: 8px 16px; font-size: 14px; }
+.activity[hidden] { display: none; }
+ol.hint { padding-left: 20px; }

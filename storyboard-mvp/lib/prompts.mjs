@@ -64,6 +64,20 @@ export function sceneImagePrompt(p, scene, { hasSheet, truckRefs, hasPrev }) {
   return lines.filter(Boolean).join('\n');
 }
 
+/** En Flow las referencias no llevan etiqueta: se explica su orden dentro del prompt. */
+export function attachedRefsNote(labels) {
+  if (!labels.length) return '';
+  const names = { [REF_LABELS.sheet]: 'character style sheet (identity and outfit)', [REF_LABELS.truck]: 'truck interior (set)', [REF_LABELS.prev]: 'previous scene (continuity only)' };
+  return `Attached reference images, in order: ${labels.map((l, i) => `${i + 1}) ${names[l]}`).join(', ')}.`;
+}
+
+/** Gemini web no tiene esquema estructurado: se pide el JSON en el propio texto. */
+export function storyboardChatPrompt(p) {
+  return `${storyboardPrompt(p)}
+
+Responde SOLO con un objeto JSON válido, sin texto antes ni después: un objeto con la clave scenes, que es un array de objetos con las claves title, time, location, action, camera, imagePrompt y motionPrompt (todas de texto).`;
+}
+
 export function sceneMotionPrompt(p, scene) {
   return [
     scene.motionPrompt || scene.action,
