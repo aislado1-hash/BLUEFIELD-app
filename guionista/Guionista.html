@@ -1,3 +1,141 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Guionista de Fútbol</title>
+<style>
+  :root {
+    --bg: #f4f5f7; --panel: #ffffff; --text: #16181d; --muted: #646b78; --line: #dfe2e8;
+    --accent: #0f9d58; --accent-ink: #ffffff; --danger: #c62828; --bubble: #e9f7ef; --pill: #eef0f4;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f1115; --panel: #171a21; --text: #e8eaee; --muted: #9aa1ad; --line: #2a2f39;
+      --accent: #2bbf72; --accent-ink: #06130b; --danger: #ef5350; --bubble: #16342a; --pill: #222733;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  header { padding: 16px; border-bottom: 1px solid var(--line); background: var(--panel); display: flex; gap: 12px; align-items: baseline; flex-wrap: wrap; }
+  header h1 { margin: 0; font-size: 20px; }
+  header .estado { color: var(--muted); font-size: 13px; }
+  main { display: grid; grid-template-columns: minmax(300px, 400px) 1fr; gap: 16px; padding: 16px; max-width: 1400px; margin: 0 auto; }
+  @media (max-width: 860px) { main { grid-template-columns: 1fr; } }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px; min-width: 0; }
+  label { display: block; font-weight: 600; font-size: 13px; margin: 12px 0 4px; }
+  label .opt { color: var(--muted); font-weight: 400; }
+  input, textarea, select { width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--text); font: inherit; }
+  textarea { resize: vertical; }
+  button { font: inherit; border-radius: 8px; border: 1px solid var(--line); background: var(--pill); color: var(--text); padding: 8px 12px; cursor: pointer; }
+  button.primario { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 700; width: 100%; padding: 12px; margin-top: 16px; }
+  button:disabled { opacity: .5; cursor: default; }
+  .fila { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .tabs { display: flex; gap: 4px; margin-bottom: 12px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+  .tabs button { border: none; background: none; border-bottom: 2px solid transparent; border-radius: 0; color: var(--muted); }
+  .tabs button.activo { color: var(--text); border-bottom-color: var(--accent); font-weight: 600; }
+  .vacio { color: var(--muted); text-align: center; padding: 48px 16px; }
+  .error { color: var(--danger); font-weight: 600; margin: 8px 0; }
+  .aviso { color: var(--muted); font-size: 13px; margin: 8px 0; }
+  #doc { overflow-x: auto; }
+  #doc h2 { font-size: 17px; margin: 24px 0 8px; padding-top: 12px; border-top: 1px solid var(--line); }
+  #doc h2:first-child { border-top: none; margin-top: 0; }
+  #doc h3 { font-size: 15px; margin: 16px 0 6px; }
+  #doc table { border-collapse: collapse; width: 100%; font-size: 13px; margin: 8px 0; }
+  #doc th, #doc td { border: 1px solid var(--line); padding: 6px 8px; text-align: left; vertical-align: top; }
+  #doc th { background: var(--pill); }
+  #doc p { margin: 6px 0; white-space: pre-wrap; }
+  #doc ul { margin: 6px 0; padding-left: 20px; }
+  .crudo { white-space: pre-wrap; font-family: ui-monospace, monospace; font-size: 13px; }
+  .chat { max-width: 560px; margin: 0 auto; display: flex; flex-direction: column; gap: 6px; }
+  .msg { background: var(--bubble); border-radius: 12px; padding: 6px 10px; max-width: 90%; align-self: flex-start; }
+  .msg b { display: block; font-size: 12px; }
+  .evento { align-self: center; background: var(--pill); color: var(--muted); font-size: 12px; border-radius: 999px; padding: 3px 12px; text-align: center; }
+  .cta { align-self: center; font-style: italic; color: var(--muted); text-align: center; }
+  #historial { list-style: none; padding: 0; margin: 8px 0 0; }
+  #historial li { display: flex; gap: 6px; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--line); }
+  #historial li span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; }
+  #historial small { color: var(--muted); }
+  fieldset { border: none; padding: 0; margin: 0; }
+  label.check { display: flex; gap: 8px; align-items: center; font-weight: 400; }
+  label.check input { width: auto; }
+  .nota { font-weight: 700; font-size: 18px; color: var(--accent); }
+  .idea { border: 1px solid var(--line); border-radius: 10px; padding: 12px; margin-bottom: 12px; }
+  .idea h3 { margin: 0 0 6px; font-size: 15px; }
+  .idea p { margin: 4px 0; white-space: pre-wrap; font-size: 14px; }
+  .idea button { margin-top: 8px; }
+  details summary { cursor: pointer; font-weight: 600; margin-top: 16px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>⚽ Guionista de Fútbol</h1>
+  <span class="estado">Funciona con tu cuenta de claude.ai, sin API</span>
+</header>
+<main>
+  <section class="panel">
+    <div class="tabs" id="modos">
+      <button type="button" data-modo="guion" class="activo">Crear guion</button>
+      <button type="button" data-modo="ideas">Generar ideas</button>
+      <button type="button" data-modo="mejorar">Mejorar guion</button>
+    </div>
+    <form id="form">
+      <fieldset data-modo="guion">
+        <label for="titulo">Título</label>
+        <input id="titulo" placeholder="Ej.: Lamine tiene que elegir entre España y Marruecos">
+        <label for="contexto">Contexto</label>
+        <textarea id="contexto" rows="10" placeholder="Qué debe pasar, personajes, conflictos, momentos clave y final."></textarea>
+      </fieldset>
+
+      <fieldset data-modo="ideas" hidden>
+        <label for="peticion">¿Qué tipo de ideas quieres? <span class="opt">(opcional)</span></label>
+        <textarea id="peticion" rows="6" placeholder="Ej.: ideas con el Barça y el Madrid, en tono de humor, para una serie…"></textarea>
+        <label for="cantidad">Cantidad de ideas</label>
+        <input id="cantidad" type="number" min="1" max="20" value="10">
+      </fieldset>
+
+      <fieldset data-modo="mejorar" hidden>
+        <label for="guion">Guion actual</label>
+        <textarea id="guion" rows="12" placeholder="Pega aquí el guion (Personaje: mensaje)."></textarea>
+        <label for="notas">Indicaciones <span class="opt">(opcional)</span></label>
+        <input id="notas" placeholder="Ej.: el medio se hace lento, quiero un final más emotivo">
+        <label class="check"><input type="checkbox" id="corregir" checked> Entregar también el guion corregido</label>
+      </fieldset>
+
+      <button class="primario" id="generar" type="submit">1. Copiar prompt y abrir Claude</button>
+      <p class="aviso">Se copia el prompt y se abre claude.ai en otra pestaña. Pégalo allí (Ctrl+V / Cmd+V) y envíalo.</p>
+    </form>
+
+    <label for="respuesta">2. Pega aquí la respuesta de Claude</label>
+    <textarea id="respuesta" rows="6" placeholder="En claude.ai pulsa el botón «Copiar» que hay debajo de la respuesta y pégala aquí."></textarea>
+    <p class="aviso">Si Claude se corta, escríbele «continúa» y pega aquí las dos partes seguidas.</p>
+    <button class="primario" id="ver" type="button">Ver resultado</button>
+
+    <details open>
+      <summary>Historial</summary>
+      <ul id="historial"></ul>
+    </details>
+  </section>
+
+  <section class="panel">
+    <div class="fila" style="justify-content: space-between; margin-bottom: 8px;">
+      <div class="tabs" id="tabs">
+        <button type="button" data-vista="doc" class="activo">Documento</button>
+        <button type="button" data-vista="chat">Vista chat</button>
+        <button type="button" data-vista="crudo">Texto</button>
+      </div>
+      <div class="fila">
+        <button type="button" id="copiarGuion" disabled>Copiar guion</button>
+        <button type="button" id="copiarTodo" disabled>Copiar todo</button>
+        <button type="button" id="descargar" disabled>Descargar .md</button>
+      </div>
+    </div>
+    <div id="mensajes"></div>
+    <div id="salida"><div class="vacio">Elige un modo, rellena el formulario y sigue los pasos 1 y 2.</div></div>
+  </section>
+</main>
+
+<script type="text/plain" id="maestro">
 PROMPT MAESTRO: CREACIÓN DE GUIONES DE FÚTBOL PARA VÍDEOS LARGOS DE YOUTUBE
 Quiero que actúes como un guionista profesional especializado en historias ficticias de fútbol contadas mediante chats grupales, con experiencia en narrativa, humor, desarrollo de personajes, ritmo audiovisual y retención de audiencia para vídeos largos de YouTube.
 Tu tarea es crear una historia completa a partir del título y el contexto que te proporcionaré al final de este prompt.
@@ -415,7 +553,7 @@ No incluyas explicaciones sobre el proceso de escritura fuera de las secciones e
 21. DATOS PARA CREAR LA HISTORIA
 Título: [ESCRIBE AQUÍ EL TÍTULO]
 Contexto: [EXPLICA AQUÍ QUÉ DEBE SUCEDER EN LA HISTORIA]
-Los datos llegarán en el mensaje del usuario.
+Los datos aparecen al final de este mensaje, en el apartado «PETICIÓN».
 
 # 22. EVALUADOR DE RETENCIÓN DEL GUION
 
@@ -685,9 +823,298 @@ En todos los modos, prioriza la utilidad, la coherencia y la calidad narrativa. 
 ---
 
 FORMATO TÉCNICO DE LA RESPUESTA (para la aplicación que muestra el resultado)
-* El mensaje del usuario empieza indicando el modo (MODO 1, MODO 2 o MODO 3). Sigue las reglas de ese modo.
+* La petición concreta está al final de este mensaje, en el apartado «PETICIÓN», e indica el modo (MODO 1, MODO 2 o MODO 3). Sigue las reglas de ese modo y empieza directamente con el resultado, sin preámbulos.
 * Escribe cada sección principal con una línea de encabezado Markdown de nivel 2 (##) y cada subapartado con nivel 3 (###). Escribe las tablas en formato de tabla Markdown.
 * MODO 1: usa los encabezados «## A. CONCEPTO NARRATIVO» … «## J. VERIFICACIÓN FINAL» y, después, la evaluación del apartado 22 bajo «## K. EVALUACIÓN DE RETENCIÓN».
 * MODO 2: cada idea va bajo «### IDEA [número]: [nombre breve]», con las etiquetas del apartado 23.3 en mayúsculas al inicio de línea; la priorización final va bajo «## PRIORIZACIÓN FINAL».
 * MODO 3: entrega la evaluación del apartado 22 con encabezados ##. Si el usuario pide el guion corregido, añádelo al final bajo «## GUION CORREGIDO».
 * Dentro de «## E. GUION COMPLETO» y de «## GUION CORREGIDO» escribe solo las líneas del chat («Personaje: mensaje» o «Evento: "acción"») y, si procede, las llamadas a la acción al final; sin viñetas, sin negritas y sin bloques de código.
+</script>
+<script>
+const $ = (id) => document.getElementById(id);
+const CAMPOS = ["titulo", "contexto", "peticion", "cantidad", "guion", "notas", "corregir"];
+const store = {
+  get(k, def) { try { return JSON.parse(localStorage.getItem(k)) ?? def; } catch { return def; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
+};
+
+let texto = "";
+let datosActuales = null;
+let modo = "guion";
+let vista = "doc";
+
+// ---------- utilidades de formato ----------
+const esc = (s) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const inline = (s) => esc(s).replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+const limpiar = (s) => s.replace(/\*\*/g, "").trim();
+
+function markdown(md) {
+  const lineas = md.split("\n");
+  let html = "", i = 0;
+  while (i < lineas.length) {
+    const l = lineas[i];
+    if (/^\s*\|/.test(l)) {
+      const filas = [];
+      while (i < lineas.length && /^\s*\|/.test(lineas[i])) filas.push(lineas[i++]);
+      const celdas = (f) => f.trim().replace(/^\||\|$/g, "").split("|").map((c) => inline(c.trim()));
+      const cuerpo = filas.filter((f) => !/^\s*\|[\s:|-]+\|\s*$/.test(f));
+      const [cab, ...resto] = cuerpo;
+      html += "<table><thead><tr>" + celdas(cab).map((c) => `<th>${c}</th>`).join("") + "</tr></thead><tbody>"
+        + resto.map((f) => "<tr>" + celdas(f).map((c) => `<td>${c}</td>`).join("") + "</tr>").join("") + "</tbody></table>";
+      continue;
+    }
+    if (/^\s*([-*]|\d+\.) /.test(l)) {
+      html += "<ul>";
+      while (i < lineas.length && /^\s*([-*]|\d+\.) /.test(lineas[i])) html += `<li>${inline(lineas[i++].replace(/^\s*[-*] /, ""))}</li>`;
+      html += "</ul>";
+      continue;
+    }
+    const h = l.match(/^(#{1,4})\s+(.*)/);
+    if (h) html += h[1].length <= 2 ? `<h2>${inline(h[2])}</h2>` : `<h3>${inline(h[2])}</h3>`;
+    else if (l.trim() && !/^-{3,}$/.test(l.trim())) html += `<p>${inline(l)}</p>`;
+    i++;
+  }
+  return html;
+}
+
+// Extrae las líneas de chat: «E. GUION COMPLETO» (modo 1) o «GUION CORREGIDO» (modo 3).
+function soloGuion(md) {
+  const m = md.match(/^#{1,3}\s*\**(E\.\s*GUION COMPLETO|GUION CORREGIDO)\**.*$/im);
+  if (!m) return "";
+  const resto = md.slice(m.index + m[0].length);
+  const fin = resto.search(/^#{1,3}\s/m);
+  return (fin === -1 ? resto : resto.slice(0, fin)).trim();
+}
+
+function puntuacion(md) {
+  const m = md.match(/PUNTUACI[ÓO]N DE RETENCI[ÓO]N POTENCIAL:\**\s*(\d{1,3})\s*\/\s*100/i);
+  return m ? Number(m[1]) : null;
+}
+
+// Divide la respuesta del modo 2 en ideas («### IDEA n: nombre»).
+function ideas(md) {
+  const partes = md.split(/^#{2,4}\s*\**IDEA\s+(\d+)\s*[:.\-–]\s*(.*)$/im);
+  const lista = [];
+  for (let i = 1; i < partes.length; i += 3) {
+    let cuerpo = partes[i + 2] || "";
+    const fin = cuerpo.search(/^#{1,2}\s/m); // corta en «## PRIORIZACIÓN FINAL»
+    if (fin !== -1) cuerpo = cuerpo.slice(0, fin);
+    cuerpo = cuerpo.replace(/^\s*-{3,}\s*$/gm, "").trim();
+    const t = cuerpo.match(/^\**T[ÍI]TULO PROPUESTO:?\**:?[ \t]*(.*)\n?(.*)/im);
+    const titulo = t ? limpiar(t[1] || t[2]).replace(/^["«“]|["»”]$/g, "") : limpiar(partes[i + 1]);
+    lista.push({ numero: partes[i], nombre: limpiar(partes[i + 1]), titulo, cuerpo });
+  }
+  return lista;
+}
+
+function vistaChat(guion) {
+  if (!guion) return '<div class="vacio">La vista chat aparece cuando el resultado incluye un guion.</div>';
+  return '<div class="chat">' + guion.split("\n").map((l) => l.trim()).filter(Boolean).map((l) => {
+    const ev = l.match(/^Evento:\s*(.*)$/i);
+    if (ev) return `<div class="evento">${esc(ev[1].replace(/^"|"$/g, ""))}</div>`;
+    const m = l.match(/^([^:]{1,40}):\s+(.+)$/);
+    if (m) return `<div class="msg"><b>${esc(m[1])}</b>${esc(m[2])}</div>`;
+    return `<div class="cta">${esc(l)}</div>`;
+  }).join("") + "</div>";
+}
+
+function vistaIdeas(lista) {
+  if (!lista.length) return '<div class="vacio">Las ideas aparecerán aquí.</div>';
+  return lista.map((idea, idx) => `<div class="idea"><h3>IDEA ${esc(idea.numero)}: ${esc(idea.nombre)}</h3>`
+    + `<p><strong>${esc(idea.titulo)}</strong></p>`
+    + `<details><summary>Ver detalles</summary>${markdown(idea.cuerpo)}</details>`
+    + `<button type="button" data-idea="${idx}">Desarrollar esta idea →</button></div>`).join("");
+}
+
+function pintar() {
+  const salida = $("salida");
+  if (!texto) return;
+  const esIdeas = datosActuales?.modo === "ideas";
+  document.querySelector('#tabs [data-vista="chat"]').textContent = esIdeas ? "Ideas" : "Vista chat";
+  if (vista === "doc") salida.innerHTML = `<div id="doc">${markdown(texto)}</div>`;
+  else if (vista === "chat") salida.innerHTML = esIdeas ? vistaIdeas(ideas(texto)) : vistaChat(soloGuion(texto));
+  else salida.innerHTML = `<div class="crudo">${esc(texto)}</div>`;
+  $("copiarTodo").disabled = $("descargar").disabled = !texto;
+  $("copiarGuion").disabled = !soloGuion(texto);
+}
+
+function aviso(msg, clase = "aviso") {
+  $("mensajes").innerHTML = msg ? `<div class="${clase}">${esc(msg)}</div>` : "";
+}
+
+function avisoFinal(extra = "") {
+  const nota = puntuacion(texto);
+  $("mensajes").innerHTML = (nota !== null ? `<div class="nota">Retención potencial: ${nota}/100</div>` : "")
+    + (extra ? `<div class="aviso">${esc(extra)}</div>` : "");
+}
+
+// ---------- modos ----------
+function cambiarModo(m) {
+  modo = m;
+  document.querySelectorAll("#modos button").forEach((b) => b.classList.toggle("activo", b.dataset.modo === m));
+  document.querySelectorAll("fieldset[data-modo]").forEach((f) => (f.hidden = f.dataset.modo !== m));
+}
+
+function leerCampos() {
+  const d = { modo };
+  CAMPOS.forEach((c) => (d[c] = $(c).type === "checkbox" ? $(c).checked : $(c).value));
+  return d;
+}
+
+function ponerCampos(d) {
+  CAMPOS.forEach((c) => {
+    if (d[c] === undefined) return;
+    if ($(c).type === "checkbox") $(c).checked = d[c]; else $(c).value = d[c];
+  });
+  cambiarModo(d.modo || "guion");
+}
+
+function desarrollarIdea(idea) {
+  $("titulo").value = idea.titulo;
+  $("contexto").value = idea.cuerpo.replace(/^\**T[ÍI]TULO PROPUESTO:?\**:?.*\n?.*\n?/im, "").trim();
+  cambiarModo("guion");
+  store.set("guionista.borrador", leerCampos());
+  $("titulo").scrollIntoView({ behavior: "smooth" });
+  aviso("Idea cargada en «Crear guion». Revisa el título y el contexto y sigue el paso 1.");
+}
+
+// ---------- historial ----------
+function etiqueta(d) {
+  if (d.modo === "ideas") return `💡 Ideas: ${d.peticion?.trim() || "originales"}`;
+  if (d.modo === "mejorar") return `🛠️ Mejora: ${d.guion?.trim().split("\n")[0] || "guion"}`;
+  return `🎬 ${d.titulo}`;
+}
+
+function pintarHistorial() {
+  const lista = store.get("guionista.historial", []);
+  $("historial").innerHTML = lista.length ? "" : '<li><small>Aún no hay resultados.</small></li>';
+  lista.forEach((h, idx) => {
+    const li = document.createElement("li");
+    li.innerHTML = `<span title="Abrir">${esc(etiqueta(h.datos))}<br><small>${new Date(h.fecha).toLocaleString()}</small></span>`;
+    const borrar = document.createElement("button");
+    borrar.textContent = "✕";
+    borrar.title = "Borrar";
+    borrar.onclick = () => { lista.splice(idx, 1); store.set("guionista.historial", lista); pintarHistorial(); };
+    li.querySelector("span").onclick = () => {
+      texto = h.texto; datosActuales = h.datos;
+      ponerCampos(h.datos);
+      avisoFinal(); pintar();
+    };
+    li.appendChild(borrar);
+    $("historial").appendChild(li);
+  });
+}
+
+function guardarHistorial() {
+  const lista = store.get("guionista.historial", []);
+  lista.unshift({ fecha: Date.now(), datos: datosActuales, texto });
+  store.set("guionista.historial", lista.slice(0, 20));
+  pintarHistorial();
+}
+
+// ---------- prompt para claude.ai ----------
+const txt = (v) => (typeof v === "string" ? v.trim() : "");
+
+// Petición según el modo de trabajo (apartado 24 del prompt maestro).
+function peticion(d) {
+  if (d.modo === "ideas") {
+    const n = Math.min(Math.max(parseInt(d.cantidad, 10) || 10, 1), 20);
+    return ["MODO 2 — GENERAR IDEAS", `Cantidad de ideas: ${n}`,
+      `Petición: ${txt(d.peticion) || "Ideas originales de fútbol, sin requisitos concretos."}`].join("\n");
+  }
+  if (d.modo === "mejorar") {
+    if (!txt(d.guion)) throw new Error("Pega el guion que quieres mejorar.");
+    return ["MODO 3 — MEJORAR GUION",
+      d.corregir ? "Quiero también el guion corregido al final." : "Solo quiero el análisis y las mejoras, sin reescribir el guion.",
+      txt(d.notas) ? `Indicaciones: ${txt(d.notas)}` : "", "Guion:", txt(d.guion)].filter(Boolean).join("\n");
+  }
+  if (!txt(d.titulo) || !txt(d.contexto)) throw new Error("El título y el contexto son obligatorios.");
+  return ["MODO 1 — CREAR GUION", "21. DATOS PARA CREAR LA HISTORIA",
+    `Título: ${txt(d.titulo)}`, `Contexto: ${txt(d.contexto)}`].join("\n");
+}
+
+async function copiarPrompt(ev) {
+  ev.preventDefault();
+  datosActuales = leerCampos();
+  store.set("guionista.borrador", datosActuales);
+  let prompt;
+  try {
+    prompt = `${$("maestro").textContent.trim()}\n\n---\n\nPETICIÓN\n${peticion(datosActuales)}`;
+  } catch (err) {
+    return aviso(err.message, "error");
+  }
+  // Se abre la pestaña dentro del clic para que el navegador no la bloquee.
+  const pestana = window.open("https://claude.ai/new", "_blank");
+  try {
+    await navigator.clipboard.writeText(prompt);
+    aviso("Prompt copiado. Pégalo en claude.ai, envíalo y, cuando termine, copia la respuesta en el paso 2.");
+  } catch {
+    $("respuesta").value = prompt;
+    $("respuesta").select();
+    aviso("No se pudo copiar automáticamente: el prompt está seleccionado en el cuadro del paso 2. Cópialo (Ctrl+C), pégalo en Claude y luego sustitúyelo por la respuesta.", "error");
+  }
+  if (!pestana) aviso("El navegador bloqueó la pestaña: abre https://claude.ai/new y pega el prompt.", "error");
+  $("respuesta").value = $("respuesta").value === prompt ? prompt : "";
+}
+
+function verResultado() {
+  const r = $("respuesta").value.trim();
+  if (!r) return aviso("Pega primero la respuesta de Claude.", "error");
+  if (r.includes("PETICIÓN\nMODO")) return aviso("Eso es el prompt, no la respuesta. Pégalo en claude.ai y copia aquí lo que conteste Claude.", "error");
+  datosActuales = datosActuales || leerCampos();
+  texto = r;
+  vista = "doc";
+  document.querySelectorAll("#tabs button").forEach((x) => x.classList.toggle("activo", x.dataset.vista === "doc"));
+  avisoFinal();
+  pintar();
+  guardarHistorial();
+  $("respuesta").value = "";
+}
+
+function descargar(nombre, contenido) {
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([contenido], { type: "text/markdown;charset=utf-8" }));
+  a.download = nombre;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+async function copiar(contenido, boton) {
+  try {
+    await navigator.clipboard.writeText(contenido);
+    const t = boton.textContent; boton.textContent = "¡Copiado!"; setTimeout(() => (boton.textContent = t), 1200);
+  } catch { aviso("No se pudo copiar al portapapeles.", "error"); }
+}
+
+// ---------- eventos de la interfaz ----------
+$("form").addEventListener("submit", copiarPrompt);
+$("ver").onclick = verResultado;
+$("copiarTodo").onclick = (e) => copiar(texto, e.target);
+$("copiarGuion").onclick = (e) => copiar(soloGuion(texto), e.target);
+$("descargar").onclick = () => {
+  const base = etiqueta(datosActuales || {}).toLowerCase().normalize("NFD").replace(/[^\w]+/g, "-").replace(/^-|-$/g, "").slice(0, 60);
+  descargar(`${base || "guion"}.md`, texto);
+};
+$("modos").addEventListener("click", (e) => {
+  const b = e.target.closest("button[data-modo]");
+  if (b) { cambiarModo(b.dataset.modo); store.set("guionista.borrador", leerCampos()); }
+});
+$("tabs").addEventListener("click", (e) => {
+  const b = e.target.closest("button[data-vista]");
+  if (!b) return;
+  vista = b.dataset.vista;
+  document.querySelectorAll("#tabs button").forEach((x) => x.classList.toggle("activo", x === b));
+  pintar();
+});
+$("salida").addEventListener("click", (e) => {
+  const b = e.target.closest("button[data-idea]");
+  if (b) desarrollarIdea(ideas(texto)[Number(b.dataset.idea)]);
+});
+CAMPOS.forEach((c) => $(c).addEventListener("input", () => store.set("guionista.borrador", leerCampos())));
+
+const borrador = store.get("guionista.borrador", null);
+if (borrador) ponerCampos(borrador);
+pintarHistorial();
+</script>
+</body>
+</html>
