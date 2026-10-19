@@ -21,18 +21,44 @@ const INDEX = await readFile(path.join(here, "public", "index.html"));
 
 const client = new Anthropic();
 
-// Sección 21 del prompt maestro, rellenada con los datos del formulario.
-function datosHistoria(d) {
-  const opcional = (v) => (v && v.trim() ? v.trim() : "(no especificado)");
-  return [
-    "21. DATOS PARA CREAR LA HISTORIA",
-    `Título: ${d.titulo.trim()}`,
-    `Contexto: ${d.contexto.trim()}`,
-    `Duración objetivo (opcional): ${opcional(d.duracion)}`,
-    `Personajes obligatorios (opcional): ${opcional(d.personajes)}`,
-    `Final deseado (opcional): ${opcional(d.final)}`,
-    `Eventos disponibles en Chat Video Maker (opcional): ${opcional(d.eventos)}`,
-  ].join("\n");
+const texto = (v) => (typeof v === "string" ? v.trim() : "");
+
+// Mensaje del usuario según el modo de trabajo (apartado 24 del prompt maestro).
+// Devuelve { mensaje } o { error } si faltan datos obligatorios.
+function construirMensaje(d) {
+  if (d.modo === "ideas") {
+    const n = Math.min(Math.max(parseInt(d.cantidad, 10) || 10, 1), 20);
+    return {
+      mensaje: [
+        "MODO 2 — GENERAR IDEAS",
+        `Cantidad de ideas: ${n}`,
+        `Petición: ${texto(d.peticion) || "Ideas originales de fútbol, sin requisitos concretos."}`,
+      ].join("\n"),
+    };
+  }
+  if (d.modo === "mejorar") {
+    if (!texto(d.guion)) return { error: "Pega el guion que quieres mejorar." };
+    return {
+      mensaje: [
+        "MODO 3 — MEJORAR GUION",
+        d.corregir
+          ? "Quiero también el guion corregido al final."
+          : "Solo quiero el análisis y las mejoras, sin reescribir el guion.",
+        texto(d.notas) ? `Indicaciones: ${texto(d.notas)}` : "",
+        "Guion:",
+        texto(d.guion),
+      ].filter(Boolean).join("\n"),
+    };
+  }
+  if (!texto(d.titulo) || !texto(d.contexto)) return { error: "El título y el contexto son obligatorios." };
+  return {
+    mensaje: [
+      "MODO 1 — CREAR GUION",
+      "21. DATOS PARA CREAR LA HISTORIA",
+      `Título: ${texto(d.titulo)}`,
+      `Contexto: ${texto(d.contexto)}`,
+    ].join("\n"),
+  };
 }
 
 function leerJson(req) {
@@ -69,9 +95,10 @@ async function generar(req, res) {
     res.writeHead(400, { "Content-Type": "application/json" });
     return res.end(JSON.stringify({ error: err.message }));
   }
-  if (!d.titulo?.trim() || !d.contexto?.trim()) {
+  const { mensaje, error } = construirMensaje(d);
+  if (error) {
     res.writeHead(400, { "Content-Type": "application/json" });
-    return res.end(JSON.stringify({ error: "El título y el contexto son obligatorios." }));
+    return res.end(JSON.stringify({ error }));
   }
   const effort = EFFORTS.includes(d.effort) ? d.effort : "high";
 
@@ -91,12 +118,12 @@ async function generar(req, res) {
     output_config: { effort },
     // El prompt maestro es fijo: se cachea para abaratar las siguientes generaciones.
     system: [{ type: "text", text: MAESTRO, cache_control: { type: "ephemeral" } }],
-    messages: [{ role: "user", content: datosHistoria(d) }],
+    messages: [{ role: "user", content: mensaje }],
   });
   res.on("close", () => stream.abort());
 
   try {
-    enviar({ tipo: "estado", texto: "Pensando la historia…" });
+    enviar({ tipo: "estado", texto: "Pensando…" });
     for await (const ev of stream) {
       if (ev.type === "content_block_delta" && ev.delta.type === "text_delta") {
         enviar({ tipo: "texto", texto: ev.delta.text });

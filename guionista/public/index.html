@@ -56,6 +56,14 @@
   #historial li { display: flex; gap: 6px; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--line); }
   #historial li span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; }
   #historial small { color: var(--muted); }
+  fieldset { border: none; padding: 0; margin: 0; }
+  label.check { display: flex; gap: 8px; align-items: center; font-weight: 400; }
+  label.check input { width: auto; }
+  .nota { font-weight: 700; font-size: 18px; color: var(--accent); }
+  .idea { border: 1px solid var(--line); border-radius: 10px; padding: 12px; margin-bottom: 12px; }
+  .idea h3 { margin: 0 0 6px; font-size: 15px; }
+  .idea p { margin: 4px 0; white-space: pre-wrap; font-size: 14px; }
+  .idea button { margin-top: 8px; }
   details summary { cursor: pointer; font-weight: 600; margin-top: 16px; }
 </style>
 </head>
@@ -66,27 +74,36 @@
 </header>
 <main>
   <section class="panel">
+    <div class="tabs" id="modos">
+      <button type="button" data-modo="guion" class="activo">Crear guion</button>
+      <button type="button" data-modo="ideas">Generar ideas</button>
+      <button type="button" data-modo="mejorar">Mejorar guion</button>
+    </div>
     <form id="form">
-      <label for="titulo">Título</label>
-      <input id="titulo" name="titulo" required placeholder="Ej.: Lamine tiene que elegir entre España y Marruecos">
+      <fieldset data-modo="guion">
+        <label for="titulo">Título</label>
+        <input id="titulo" placeholder="Ej.: Lamine tiene que elegir entre España y Marruecos">
+        <label for="contexto">Contexto</label>
+        <textarea id="contexto" rows="10" placeholder="Qué debe pasar, personajes, conflictos, momentos clave y final."></textarea>
+      </fieldset>
 
-      <label for="contexto">Contexto</label>
-      <textarea id="contexto" name="contexto" rows="7" required placeholder="Qué debe pasar, personajes, conflictos, momentos clave y final."></textarea>
+      <fieldset data-modo="ideas" hidden>
+        <label for="peticion">¿Qué tipo de ideas quieres? <span class="opt">(opcional)</span></label>
+        <textarea id="peticion" rows="6" placeholder="Ej.: ideas con el Barça y el Madrid, en tono de humor, para una serie…"></textarea>
+        <label for="cantidad">Cantidad de ideas</label>
+        <input id="cantidad" type="number" min="1" max="20" value="10">
+      </fieldset>
 
-      <label for="duracion">Duración objetivo <span class="opt">(opcional)</span></label>
-      <input id="duracion" name="duracion" placeholder="Ej.: 8 minutos">
-
-      <label for="personajes">Personajes obligatorios <span class="opt">(opcional)</span></label>
-      <input id="personajes" name="personajes" placeholder="Ej.: Lamine, España, Marruecos, Hakimi">
-
-      <label for="final">Final deseado <span class="opt">(opcional)</span></label>
-      <textarea id="final" name="final" rows="2"></textarea>
-
-      <label for="eventos">Eventos disponibles en Chat Video Maker <span class="opt">(opcional)</span></label>
-      <textarea id="eventos" name="eventos" rows="3" placeholder="Pega aquí el catálogo de eventos y sus funciones, si lo tienes."></textarea>
+      <fieldset data-modo="mejorar" hidden>
+        <label for="guion">Guion actual</label>
+        <textarea id="guion" rows="12" placeholder="Pega aquí el guion (Personaje: mensaje)."></textarea>
+        <label for="notas">Indicaciones <span class="opt">(opcional)</span></label>
+        <input id="notas" placeholder="Ej.: el medio se hace lento, quiero un final más emotivo">
+        <label class="check"><input type="checkbox" id="corregir" checked> Entregar también el guion corregido</label>
+      </fieldset>
 
       <label for="effort">Calidad</label>
-      <select id="effort" name="effort">
+      <select id="effort">
         <option value="medium">Rápida</option>
         <option value="high" selected>Equilibrada (recomendada)</option>
         <option value="xhigh">Máxima (más lenta y cara)</option>
@@ -116,13 +133,14 @@
       </div>
     </div>
     <div id="mensajes"></div>
-    <div id="salida"><div class="vacio">Rellena el formulario y pulsa «Generar guion».</div></div>
+    <div id="salida"><div class="vacio">Elige un modo, rellena el formulario y pulsa el botón verde.</div></div>
   </section>
 </main>
 
 <script>
 const $ = (id) => document.getElementById(id);
-const CAMPOS = ["titulo", "contexto", "duracion", "personajes", "final", "eventos", "effort"];
+const CAMPOS = ["titulo", "contexto", "peticion", "cantidad", "guion", "notas", "corregir", "effort"];
+const BOTON = { guion: "Generar guion", ideas: "Generar ideas", mejorar: "Analizar guion" };
 const store = {
   get(k, def) { try { return JSON.parse(localStorage.getItem(k)) ?? def; } catch { return def; } },
   set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
@@ -130,12 +148,14 @@ const store = {
 
 let texto = "";
 let datosActuales = null;
+let modo = "guion";
 let vista = "doc";
 let controlador = null;
 
 // ---------- utilidades de formato ----------
 const esc = (s) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const inline = (s) => esc(s).replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+const limpiar = (s) => s.replace(/\*\*/g, "").trim();
 
 function markdown(md) {
   const lineas = md.split("\n");
@@ -152,9 +172,9 @@ function markdown(md) {
         + resto.map((f) => "<tr>" + celdas(f).map((c) => `<td>${c}</td>`).join("") + "</tr>").join("") + "</tbody></table>";
       continue;
     }
-    if (/^\s*[-*] /.test(l)) {
+    if (/^\s*([-*]|\d+\.) /.test(l)) {
       html += "<ul>";
-      while (i < lineas.length && /^\s*[-*] /.test(lineas[i])) html += `<li>${inline(lineas[i++].replace(/^\s*[-*] /, ""))}</li>`;
+      while (i < lineas.length && /^\s*([-*]|\d+\.) /.test(lineas[i])) html += `<li>${inline(lineas[i++].replace(/^\s*[-*] /, ""))}</li>`;
       html += "</ul>";
       continue;
     }
@@ -166,17 +186,38 @@ function markdown(md) {
   return html;
 }
 
-// Extrae la sección «E. GUION COMPLETO» (hasta la siguiente sección ##).
+// Extrae las líneas de chat: «E. GUION COMPLETO» (modo 1) o «GUION CORREGIDO» (modo 3).
 function soloGuion(md) {
-  const m = md.match(/^#{1,3}\s*\**E\.\s*GUION COMPLETO\**.*$/im);
+  const m = md.match(/^#{1,3}\s*\**(E\.\s*GUION COMPLETO|GUION CORREGIDO)\**.*$/im);
   if (!m) return "";
   const resto = md.slice(m.index + m[0].length);
   const fin = resto.search(/^#{1,3}\s/m);
   return (fin === -1 ? resto : resto.slice(0, fin)).trim();
 }
 
+function puntuacion(md) {
+  const m = md.match(/PUNTUACI[ÓO]N DE RETENCI[ÓO]N POTENCIAL:\**\s*(\d{1,3})\s*\/\s*100/i);
+  return m ? Number(m[1]) : null;
+}
+
+// Divide la respuesta del modo 2 en ideas («### IDEA n: nombre»).
+function ideas(md) {
+  const partes = md.split(/^#{2,4}\s*\**IDEA\s+(\d+)\s*[:.\-–]\s*(.*)$/im);
+  const lista = [];
+  for (let i = 1; i < partes.length; i += 3) {
+    let cuerpo = partes[i + 2] || "";
+    const fin = cuerpo.search(/^#{1,2}\s/m); // corta en «## PRIORIZACIÓN FINAL»
+    if (fin !== -1) cuerpo = cuerpo.slice(0, fin);
+    cuerpo = cuerpo.replace(/^\s*-{3,}\s*$/gm, "").trim();
+    const t = cuerpo.match(/^\**T[ÍI]TULO PROPUESTO:?\**:?[ \t]*(.*)\n?(.*)/im);
+    const titulo = t ? limpiar(t[1] || t[2]).replace(/^["«“]|["»”]$/g, "") : limpiar(partes[i + 1]);
+    lista.push({ numero: partes[i], nombre: limpiar(partes[i + 1]), titulo, cuerpo });
+  }
+  return lista;
+}
+
 function vistaChat(guion) {
-  if (!guion) return '<div class="vacio">La vista chat aparecerá cuando llegue la sección «E. GUION COMPLETO».</div>';
+  if (!guion) return '<div class="vacio">La vista chat aparece cuando el resultado incluye un guion.</div>';
   return '<div class="chat">' + guion.split("\n").map((l) => l.trim()).filter(Boolean).map((l) => {
     const ev = l.match(/^Evento:\s*(.*)$/i);
     if (ev) return `<div class="evento">${esc(ev[1].replace(/^"|"$/g, ""))}</div>`;
@@ -186,14 +227,23 @@ function vistaChat(guion) {
   }).join("") + "</div>";
 }
 
+function vistaIdeas(lista) {
+  if (!lista.length) return '<div class="vacio">Las ideas aparecerán aquí.</div>';
+  return lista.map((idea, idx) => `<div class="idea"><h3>IDEA ${esc(idea.numero)}: ${esc(idea.nombre)}</h3>`
+    + `<p><strong>${esc(idea.titulo)}</strong></p>`
+    + `<details><summary>Ver detalles</summary>${markdown(idea.cuerpo)}</details>`
+    + `<button type="button" data-idea="${idx}">Desarrollar esta idea →</button></div>`).join("");
+}
+
 function pintar() {
   const salida = $("salida");
   if (!texto) return;
+  const esIdeas = datosActuales?.modo === "ideas";
+  document.querySelector('#tabs [data-vista="chat"]').textContent = esIdeas ? "Ideas" : "Vista chat";
   if (vista === "doc") salida.innerHTML = `<div id="doc">${markdown(texto)}</div>`;
-  else if (vista === "chat") salida.innerHTML = vistaChat(soloGuion(texto));
+  else if (vista === "chat") salida.innerHTML = esIdeas ? vistaIdeas(ideas(texto)) : vistaChat(soloGuion(texto));
   else salida.innerHTML = `<div class="crudo">${esc(texto)}</div>`;
-  const hay = Boolean(texto);
-  $("copiarTodo").disabled = $("descargar").disabled = !hay;
+  $("copiarTodo").disabled = $("descargar").disabled = !texto;
   $("copiarGuion").disabled = !soloGuion(texto);
 }
 
@@ -201,21 +251,64 @@ function aviso(msg, clase = "aviso") {
   $("mensajes").innerHTML = msg ? `<div class="${clase}">${esc(msg)}</div>` : "";
 }
 
+function avisoFinal(extra = "") {
+  const nota = puntuacion(texto);
+  $("mensajes").innerHTML = (nota !== null ? `<div class="nota">Retención potencial: ${nota}/100</div>` : "")
+    + (extra ? `<div class="aviso">${esc(extra)}</div>` : "");
+}
+
+// ---------- modos ----------
+function cambiarModo(m) {
+  modo = m;
+  document.querySelectorAll("#modos button").forEach((b) => b.classList.toggle("activo", b.dataset.modo === m));
+  document.querySelectorAll("fieldset[data-modo]").forEach((f) => (f.hidden = f.dataset.modo !== m));
+  $("generar").textContent = BOTON[m];
+}
+
+function leerCampos() {
+  const d = { modo };
+  CAMPOS.forEach((c) => (d[c] = $(c).type === "checkbox" ? $(c).checked : $(c).value));
+  return d;
+}
+
+function ponerCampos(d) {
+  CAMPOS.forEach((c) => {
+    if (d[c] === undefined) return;
+    if ($(c).type === "checkbox") $(c).checked = d[c]; else $(c).value = d[c];
+  });
+  cambiarModo(d.modo || "guion");
+}
+
+function desarrollarIdea(idea) {
+  $("titulo").value = idea.titulo;
+  $("contexto").value = idea.cuerpo.replace(/^\**T[ÍI]TULO PROPUESTO:?\**:?.*\n?.*\n?/im, "").trim();
+  cambiarModo("guion");
+  store.set("guionista.borrador", leerCampos());
+  $("titulo").scrollIntoView({ behavior: "smooth" });
+  aviso("Idea cargada en «Crear guion». Revisa el título y el contexto y pulsa «Generar guion».");
+}
+
 // ---------- historial ----------
+function etiqueta(d) {
+  if (d.modo === "ideas") return `💡 Ideas: ${d.peticion?.trim() || "originales"}`;
+  if (d.modo === "mejorar") return `🛠️ Mejora: ${d.guion?.trim().split("\n")[0] || "guion"}`;
+  return `🎬 ${d.titulo}`;
+}
+
 function pintarHistorial() {
   const lista = store.get("guionista.historial", []);
-  $("historial").innerHTML = lista.length ? "" : '<li><small>Aún no hay guiones.</small></li>';
+  $("historial").innerHTML = lista.length ? "" : '<li><small>Aún no hay resultados.</small></li>';
   lista.forEach((h, idx) => {
     const li = document.createElement("li");
-    li.innerHTML = `<span title="Abrir">${esc(h.datos.titulo)}<br><small>${new Date(h.fecha).toLocaleString()}</small></span>`;
+    li.innerHTML = `<span title="Abrir">${esc(etiqueta(h.datos))}<br><small>${new Date(h.fecha).toLocaleString()}</small></span>`;
     const borrar = document.createElement("button");
     borrar.textContent = "✕";
     borrar.title = "Borrar";
     borrar.onclick = () => { lista.splice(idx, 1); store.set("guionista.historial", lista); pintarHistorial(); };
     li.querySelector("span").onclick = () => {
       texto = h.texto; datosActuales = h.datos;
-      CAMPOS.forEach((c) => { if (h.datos[c] !== undefined) $(c).value = h.datos[c]; });
-      aviso(""); pintar();
+      ponerCampos(h.datos);
+      avisoFinal(); pintar();
     };
     li.appendChild(borrar);
     $("historial").appendChild(li);
@@ -232,10 +325,10 @@ function guardarHistorial() {
 // ---------- generación ----------
 async function generar(ev) {
   ev.preventDefault();
-  datosActuales = Object.fromEntries(CAMPOS.map((c) => [c, $(c).value]));
+  datosActuales = leerCampos();
   store.set("guionista.borrador", datosActuales);
   texto = "";
-  $("salida").innerHTML = '<div class="vacio">Pensando la historia… (puede tardar unos minutos)</div>';
+  $("salida").innerHTML = '<div class="vacio">Pensando… (puede tardar unos minutos)</div>';
   aviso("");
   $("generar").disabled = true;
   $("parar").hidden = false;
@@ -266,8 +359,8 @@ async function generar(ev) {
         else if (e.tipo === "error") aviso(e.texto, "error");
         else if (e.tipo === "fin") {
           terminado = true;
-          if (e.stop_reason === "max_tokens") aviso("El guion se cortó por longitud. Reduce la duración objetivo o vuelve a generar.", "error");
-          else aviso(`Listo · ${e.modelo} · ${e.uso.output_tokens.toLocaleString()} tokens de salida`);
+          if (e.stop_reason === "max_tokens") aviso("El resultado se cortó por longitud. Vuelve a generar o acorta la petición.", "error");
+          else avisoFinal(`Listo · ${e.modelo} · ${e.uso.output_tokens.toLocaleString()} tokens de salida`);
         }
       }
       if (Date.now() - ultimoPintado > 250) { pintar(); ultimoPintado = Date.now(); }
@@ -304,9 +397,13 @@ $("parar").onclick = () => controlador?.abort();
 $("copiarTodo").onclick = (e) => copiar(texto, e.target);
 $("copiarGuion").onclick = (e) => copiar(soloGuion(texto), e.target);
 $("descargar").onclick = () => {
-  const base = (datosActuales?.titulo || "guion").toLowerCase().normalize("NFD").replace(/[^\w]+/g, "-").replace(/^-|-$/g, "").slice(0, 60);
+  const base = etiqueta(datosActuales || {}).toLowerCase().normalize("NFD").replace(/[^\w]+/g, "-").replace(/^-|-$/g, "").slice(0, 60);
   descargar(`${base || "guion"}.md`, texto);
 };
+$("modos").addEventListener("click", (e) => {
+  const b = e.target.closest("button[data-modo]");
+  if (b) { cambiarModo(b.dataset.modo); store.set("guionista.borrador", leerCampos()); }
+});
 $("tabs").addEventListener("click", (e) => {
   const b = e.target.closest("button[data-vista]");
   if (!b) return;
@@ -314,11 +411,14 @@ $("tabs").addEventListener("click", (e) => {
   document.querySelectorAll("#tabs button").forEach((x) => x.classList.toggle("activo", x === b));
   pintar();
 });
-CAMPOS.forEach((c) => $(c).addEventListener("input", () =>
-  store.set("guionista.borrador", Object.fromEntries(CAMPOS.map((k) => [k, $(k).value])))));
+$("salida").addEventListener("click", (e) => {
+  const b = e.target.closest("button[data-idea]");
+  if (b) desarrollarIdea(ideas(texto)[Number(b.dataset.idea)]);
+});
+CAMPOS.forEach((c) => $(c).addEventListener("input", () => store.set("guionista.borrador", leerCampos())));
 
 const borrador = store.get("guionista.borrador", null);
-if (borrador) CAMPOS.forEach((c) => { if (borrador[c] !== undefined) $(c).value = borrador[c]; });
+if (borrador) ponerCampos(borrador);
 pintarHistorial();
 
 fetch("/api/estado").then((r) => r.json()).then((s) => {

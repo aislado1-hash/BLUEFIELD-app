@@ -13,12 +13,21 @@ npm run guionista         # abre http://localhost:3000
 
 ## Qué hace
 
-- Formulario con los datos de la sección 21 del prompt: título, contexto, duración, personajes
-  obligatorios, final deseado y catálogo de eventos de Chat Video Maker.
-- El guion llega en streaming, con las secciones de la A a la J.
-- Tiene tres vistas: **Documento** (con tablas), **Vista chat** (burbujas de la sección E) y **Texto**.
-- Botones: copiar solo el guion (sección E), copiar todo y descargar en `.md`.
-- Historial de los últimos 20 guiones y borrador del formulario, guardados en el navegador.
+Tres modos (apartado 24 del prompt maestro):
+
+1. **Crear guion**: a partir de un título y un contexto genera las secciones de la A a la J y,
+   después, la **K. Evaluación de retención** (puntuación sobre 100, caídas de interés y plan de mejora).
+2. **Generar ideas**: propone N ideas (10 por defecto) con el formato del apartado 23 y una
+   priorización final. Cada idea tiene un botón **«Desarrollar esta idea»** que la carga en «Crear guion».
+3. **Mejorar guion**: pegas un guion y obtienes su análisis de retención, las mejoras recomendadas
+   y, si lo marcas, el guion corregido.
+
+Además:
+
+- El resultado llega en streaming y la puntuación de retención aparece destacada.
+- Tiene tres vistas: **Documento** (con tablas), **Vista chat** (burbujas del guion) o **Ideas** (tarjetas), y **Texto**.
+- Botones: copiar solo el guion, copiar todo y descargar en `.md`.
+- Historial de los últimos 20 resultados y borrador del formulario, guardados en el navegador.
 
 ## Detalles técnicos
 
