@@ -1,27 +1,28 @@
-# Guionista de Fútbol (sin API, con tu cuenta de claude.ai)
+# Guionista de Fútbol (con tu cuenta de Claude, sin API key)
 
-Un único archivo, `Guionista.html`, que se abre con doble clic en cualquier navegador.
-No necesita servidor, Node.js ni API key: usa tu cuenta de claude.ai mediante copiar y pegar.
+App local que genera guiones de fútbol en formato chat para vídeos largos de YouTube.
+Usa **Claude Code** con tu cuenta Pro/Max, así que no necesita API key: pulsas un botón y el resultado sale solo.
 
-## Cómo se usa
+## Arrancar
 
-1. Abre `Guionista.html` y elige el modo: **Crear guion**, **Generar ideas** o **Mejorar guion**.
-2. Rellena el formulario y pulsa **«1. Copiar prompt y abrir Claude»**. Se copia el prompt maestro
-   completo junto con tu petición, y se abre claude.ai en otra pestaña.
-3. Pégalo en Claude (Ctrl+V / Cmd+V) y envíalo.
-4. Cuando Claude termine, pulsa el botón **Copiar** que hay debajo de su respuesta, pégala en el
-   cuadro **«2. Pega aquí la respuesta de Claude»** y pulsa **«Ver resultado»**.
-   Si Claude se corta, escríbele «continúa» y pega las dos partes seguidas.
+- Windows: doble clic en `iniciar-windows.bat`.
+- Mac/Linux: abre `iniciar-mac-linux.command`.
 
-## Qué muestra
+El lanzador comprueba que tengas Node.js, instala Claude Code si falta
+(`npm install -g @anthropic-ai/claude-code`), te pide iniciar sesión la primera vez
+(`claude auth login`) y abre `http://localhost:3000`.
 
-- La **puntuación de retención potencial** destacada (sección K del modo 1, o la evaluación del modo 3).
-- Tres vistas: **Documento** (con tablas), **Vista chat** (burbujas del guion) o **Ideas** (tarjetas con el botón
-  «Desarrollar esta idea»), y **Texto**.
-- Botones: copiar solo el guion, copiar todo y descargar en `.md`.
-- Historial de los últimos 20 resultados, guardado en el navegador.
+## Modos
 
-## Cambiar las reglas
+1. **Crear guion**: título y contexto → secciones de la A a la J más la **K. Evaluación de retención**.
+   Debajo aparece el botón **«Mejorar este guion»**, que lo analiza y lo corrige automáticamente.
+2. **Generar ideas**: cada idea tiene **«Desarrollar esta idea»**, que genera su guion completo directamente.
+3. **Mejorar guion**: pegas un guion y obtienes análisis, mejoras y, si lo marcas, la versión corregida.
 
-El prompt maestro (apartados 1–24 y el formato técnico) va dentro de `Guionista.html`, en el bloque
-`<script type="text/plain" id="maestro">`. Edítalo con cualquier editor de texto y guarda el archivo.
+## Detalles técnicos
+
+- `server.mjs` (Node, sin dependencias) lanza `claude -p` con `prompt-maestro.md` como system prompt,
+  sin herramientas y sin guardar sesión, y transmite el texto a la página por SSE.
+- Puedes elegir el modelo (Opus / Sonnet / el predeterminado) y la calidad (`--effort`).
+- Cada generación gasta de los límites de uso de tu plan de Claude.
+- Para cambiar las reglas, edita `prompt-maestro.md` y vuelve a abrir el programa.
