@@ -1,0 +1,329 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Guionista de Fútbol</title>
+<style>
+  :root {
+    --bg: #f4f5f7; --panel: #ffffff; --text: #16181d; --muted: #646b78; --line: #dfe2e8;
+    --accent: #0f9d58; --accent-ink: #ffffff; --danger: #c62828; --bubble: #e9f7ef; --pill: #eef0f4;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f1115; --panel: #171a21; --text: #e8eaee; --muted: #9aa1ad; --line: #2a2f39;
+      --accent: #2bbf72; --accent-ink: #06130b; --danger: #ef5350; --bubble: #16342a; --pill: #222733;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  header { padding: 16px; border-bottom: 1px solid var(--line); background: var(--panel); display: flex; gap: 12px; align-items: baseline; flex-wrap: wrap; }
+  header h1 { margin: 0; font-size: 20px; }
+  header .estado { color: var(--muted); font-size: 13px; }
+  main { display: grid; grid-template-columns: minmax(300px, 400px) 1fr; gap: 16px; padding: 16px; max-width: 1400px; margin: 0 auto; }
+  @media (max-width: 860px) { main { grid-template-columns: 1fr; } }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px; min-width: 0; }
+  label { display: block; font-weight: 600; font-size: 13px; margin: 12px 0 4px; }
+  label .opt { color: var(--muted); font-weight: 400; }
+  input, textarea, select { width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--text); font: inherit; }
+  textarea { resize: vertical; }
+  button { font: inherit; border-radius: 8px; border: 1px solid var(--line); background: var(--pill); color: var(--text); padding: 8px 12px; cursor: pointer; }
+  button.primario { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 700; width: 100%; padding: 12px; margin-top: 16px; }
+  button:disabled { opacity: .5; cursor: default; }
+  .fila { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .tabs { display: flex; gap: 4px; margin-bottom: 12px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+  .tabs button { border: none; background: none; border-bottom: 2px solid transparent; border-radius: 0; color: var(--muted); }
+  .tabs button.activo { color: var(--text); border-bottom-color: var(--accent); font-weight: 600; }
+  .vacio { color: var(--muted); text-align: center; padding: 48px 16px; }
+  .error { color: var(--danger); font-weight: 600; margin: 8px 0; }
+  .aviso { color: var(--muted); font-size: 13px; margin: 8px 0; }
+  #doc { overflow-x: auto; }
+  #doc h2 { font-size: 17px; margin: 24px 0 8px; padding-top: 12px; border-top: 1px solid var(--line); }
+  #doc h2:first-child { border-top: none; margin-top: 0; }
+  #doc h3 { font-size: 15px; margin: 16px 0 6px; }
+  #doc table { border-collapse: collapse; width: 100%; font-size: 13px; margin: 8px 0; }
+  #doc th, #doc td { border: 1px solid var(--line); padding: 6px 8px; text-align: left; vertical-align: top; }
+  #doc th { background: var(--pill); }
+  #doc p { margin: 6px 0; white-space: pre-wrap; }
+  #doc ul { margin: 6px 0; padding-left: 20px; }
+  .crudo { white-space: pre-wrap; font-family: ui-monospace, monospace; font-size: 13px; }
+  .chat { max-width: 560px; margin: 0 auto; display: flex; flex-direction: column; gap: 6px; }
+  .msg { background: var(--bubble); border-radius: 12px; padding: 6px 10px; max-width: 90%; align-self: flex-start; }
+  .msg b { display: block; font-size: 12px; }
+  .evento { align-self: center; background: var(--pill); color: var(--muted); font-size: 12px; border-radius: 999px; padding: 3px 12px; text-align: center; }
+  .cta { align-self: center; font-style: italic; color: var(--muted); text-align: center; }
+  #historial { list-style: none; padding: 0; margin: 8px 0 0; }
+  #historial li { display: flex; gap: 6px; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--line); }
+  #historial li span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; }
+  #historial small { color: var(--muted); }
+  details summary { cursor: pointer; font-weight: 600; margin-top: 16px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>⚽ Guionista de Fútbol</h1>
+  <span class="estado" id="estado">Comprobando conexión…</span>
+</header>
+<main>
+  <section class="panel">
+    <form id="form">
+      <label for="titulo">Título</label>
+      <input id="titulo" name="titulo" required placeholder="Ej.: Lamine tiene que elegir entre España y Marruecos">
+
+      <label for="contexto">Contexto</label>
+      <textarea id="contexto" name="contexto" rows="7" required placeholder="Qué debe pasar, personajes, conflictos, momentos clave y final."></textarea>
+
+      <label for="duracion">Duración objetivo <span class="opt">(opcional)</span></label>
+      <input id="duracion" name="duracion" placeholder="Ej.: 8 minutos">
+
+      <label for="personajes">Personajes obligatorios <span class="opt">(opcional)</span></label>
+      <input id="personajes" name="personajes" placeholder="Ej.: Lamine, España, Marruecos, Hakimi">
+
+      <label for="final">Final deseado <span class="opt">(opcional)</span></label>
+      <textarea id="final" name="final" rows="2"></textarea>
+
+      <label for="eventos">Eventos disponibles en Chat Video Maker <span class="opt">(opcional)</span></label>
+      <textarea id="eventos" name="eventos" rows="3" placeholder="Pega aquí el catálogo de eventos y sus funciones, si lo tienes."></textarea>
+
+      <label for="effort">Calidad</label>
+      <select id="effort" name="effort">
+        <option value="medium">Rápida</option>
+        <option value="high" selected>Equilibrada (recomendada)</option>
+        <option value="xhigh">Máxima (más lenta y cara)</option>
+      </select>
+
+      <button class="primario" id="generar" type="submit">Generar guion</button>
+    </form>
+
+    <details open>
+      <summary>Historial</summary>
+      <ul id="historial"></ul>
+    </details>
+  </section>
+
+  <section class="panel">
+    <div class="fila" style="justify-content: space-between; margin-bottom: 8px;">
+      <div class="tabs" id="tabs">
+        <button type="button" data-vista="doc" class="activo">Documento</button>
+        <button type="button" data-vista="chat">Vista chat</button>
+        <button type="button" data-vista="crudo">Texto</button>
+      </div>
+      <div class="fila">
+        <button type="button" id="parar" hidden>Detener</button>
+        <button type="button" id="copiarGuion" disabled>Copiar guion</button>
+        <button type="button" id="copiarTodo" disabled>Copiar todo</button>
+        <button type="button" id="descargar" disabled>Descargar .md</button>
+      </div>
+    </div>
+    <div id="mensajes"></div>
+    <div id="salida"><div class="vacio">Rellena el formulario y pulsa «Generar guion».</div></div>
+  </section>
+</main>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const CAMPOS = ["titulo", "contexto", "duracion", "personajes", "final", "eventos", "effort"];
+const store = {
+  get(k, def) { try { return JSON.parse(localStorage.getItem(k)) ?? def; } catch { return def; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
+};
+
+let texto = "";
+let datosActuales = null;
+let vista = "doc";
+let controlador = null;
+
+// ---------- utilidades de formato ----------
+const esc = (s) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const inline = (s) => esc(s).replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+
+function markdown(md) {
+  const lineas = md.split("\n");
+  let html = "", i = 0;
+  while (i < lineas.length) {
+    const l = lineas[i];
+    if (/^\s*\|/.test(l)) {
+      const filas = [];
+      while (i < lineas.length && /^\s*\|/.test(lineas[i])) filas.push(lineas[i++]);
+      const celdas = (f) => f.trim().replace(/^\||\|$/g, "").split("|").map((c) => inline(c.trim()));
+      const cuerpo = filas.filter((f) => !/^\s*\|[\s:|-]+\|\s*$/.test(f));
+      const [cab, ...resto] = cuerpo;
+      html += "<table><thead><tr>" + celdas(cab).map((c) => `<th>${c}</th>`).join("") + "</tr></thead><tbody>"
+        + resto.map((f) => "<tr>" + celdas(f).map((c) => `<td>${c}</td>`).join("") + "</tr>").join("") + "</tbody></table>";
+      continue;
+    }
+    if (/^\s*[-*] /.test(l)) {
+      html += "<ul>";
+      while (i < lineas.length && /^\s*[-*] /.test(lineas[i])) html += `<li>${inline(lineas[i++].replace(/^\s*[-*] /, ""))}</li>`;
+      html += "</ul>";
+      continue;
+    }
+    const h = l.match(/^(#{1,4})\s+(.*)/);
+    if (h) html += h[1].length <= 2 ? `<h2>${inline(h[2])}</h2>` : `<h3>${inline(h[2])}</h3>`;
+    else if (l.trim() && !/^-{3,}$/.test(l.trim())) html += `<p>${inline(l)}</p>`;
+    i++;
+  }
+  return html;
+}
+
+// Extrae la sección «E. GUION COMPLETO» (hasta la siguiente sección ##).
+function soloGuion(md) {
+  const m = md.match(/^#{1,3}\s*\**E\.\s*GUION COMPLETO\**.*$/im);
+  if (!m) return "";
+  const resto = md.slice(m.index + m[0].length);
+  const fin = resto.search(/^#{1,3}\s/m);
+  return (fin === -1 ? resto : resto.slice(0, fin)).trim();
+}
+
+function vistaChat(guion) {
+  if (!guion) return '<div class="vacio">La vista chat aparecerá cuando llegue la sección «E. GUION COMPLETO».</div>';
+  return '<div class="chat">' + guion.split("\n").map((l) => l.trim()).filter(Boolean).map((l) => {
+    const ev = l.match(/^Evento:\s*(.*)$/i);
+    if (ev) return `<div class="evento">${esc(ev[1].replace(/^"|"$/g, ""))}</div>`;
+    const m = l.match(/^([^:]{1,40}):\s+(.+)$/);
+    if (m) return `<div class="msg"><b>${esc(m[1])}</b>${esc(m[2])}</div>`;
+    return `<div class="cta">${esc(l)}</div>`;
+  }).join("") + "</div>";
+}
+
+function pintar() {
+  const salida = $("salida");
+  if (!texto) return;
+  if (vista === "doc") salida.innerHTML = `<div id="doc">${markdown(texto)}</div>`;
+  else if (vista === "chat") salida.innerHTML = vistaChat(soloGuion(texto));
+  else salida.innerHTML = `<div class="crudo">${esc(texto)}</div>`;
+  const hay = Boolean(texto);
+  $("copiarTodo").disabled = $("descargar").disabled = !hay;
+  $("copiarGuion").disabled = !soloGuion(texto);
+}
+
+function aviso(msg, clase = "aviso") {
+  $("mensajes").innerHTML = msg ? `<div class="${clase}">${esc(msg)}</div>` : "";
+}
+
+// ---------- historial ----------
+function pintarHistorial() {
+  const lista = store.get("guionista.historial", []);
+  $("historial").innerHTML = lista.length ? "" : '<li><small>Aún no hay guiones.</small></li>';
+  lista.forEach((h, idx) => {
+    const li = document.createElement("li");
+    li.innerHTML = `<span title="Abrir">${esc(h.datos.titulo)}<br><small>${new Date(h.fecha).toLocaleString()}</small></span>`;
+    const borrar = document.createElement("button");
+    borrar.textContent = "✕";
+    borrar.title = "Borrar";
+    borrar.onclick = () => { lista.splice(idx, 1); store.set("guionista.historial", lista); pintarHistorial(); };
+    li.querySelector("span").onclick = () => {
+      texto = h.texto; datosActuales = h.datos;
+      CAMPOS.forEach((c) => { if (h.datos[c] !== undefined) $(c).value = h.datos[c]; });
+      aviso(""); pintar();
+    };
+    li.appendChild(borrar);
+    $("historial").appendChild(li);
+  });
+}
+
+function guardarHistorial() {
+  const lista = store.get("guionista.historial", []);
+  lista.unshift({ fecha: Date.now(), datos: datosActuales, texto });
+  store.set("guionista.historial", lista.slice(0, 20));
+  pintarHistorial();
+}
+
+// ---------- generación ----------
+async function generar(ev) {
+  ev.preventDefault();
+  datosActuales = Object.fromEntries(CAMPOS.map((c) => [c, $(c).value]));
+  store.set("guionista.borrador", datosActuales);
+  texto = "";
+  $("salida").innerHTML = '<div class="vacio">Pensando la historia… (puede tardar unos minutos)</div>';
+  aviso("");
+  $("generar").disabled = true;
+  $("parar").hidden = false;
+  controlador = new AbortController();
+  let terminado = false;
+
+  try {
+    const r = await fetch("/api/generar", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(datosActuales),
+      signal: controlador.signal,
+    });
+    if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || `Error ${r.status}`);
+    const lector = r.body.getReader();
+    const dec = new TextDecoder();
+    let buffer = "", ultimoPintado = 0;
+    while (true) {
+      const { value, done } = await lector.read();
+      if (done) break;
+      buffer += dec.decode(value, { stream: true });
+      const partes = buffer.split("\n\n");
+      buffer = partes.pop();
+      for (const p of partes) {
+        if (!p.startsWith("data: ")) continue;
+        const e = JSON.parse(p.slice(6));
+        if (e.tipo === "texto") texto += e.texto;
+        else if (e.tipo === "error") aviso(e.texto, "error");
+        else if (e.tipo === "fin") {
+          terminado = true;
+          if (e.stop_reason === "max_tokens") aviso("El guion se cortó por longitud. Reduce la duración objetivo o vuelve a generar.", "error");
+          else aviso(`Listo · ${e.modelo} · ${e.uso.output_tokens.toLocaleString()} tokens de salida`);
+        }
+      }
+      if (Date.now() - ultimoPintado > 250) { pintar(); ultimoPintado = Date.now(); }
+    }
+  } catch (err) {
+    if (err.name === "AbortError") aviso("Generación detenida.");
+    else aviso(err.message, "error");
+  } finally {
+    pintar();
+    if (texto && terminado) guardarHistorial();
+    $("generar").disabled = false;
+    $("parar").hidden = true;
+  }
+}
+
+function descargar(nombre, contenido) {
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([contenido], { type: "text/markdown;charset=utf-8" }));
+  a.download = nombre;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+async function copiar(contenido, boton) {
+  try {
+    await navigator.clipboard.writeText(contenido);
+    const t = boton.textContent; boton.textContent = "¡Copiado!"; setTimeout(() => (boton.textContent = t), 1200);
+  } catch { aviso("No se pudo copiar al portapapeles.", "error"); }
+}
+
+// ---------- eventos de la interfaz ----------
+$("form").addEventListener("submit", generar);
+$("parar").onclick = () => controlador?.abort();
+$("copiarTodo").onclick = (e) => copiar(texto, e.target);
+$("copiarGuion").onclick = (e) => copiar(soloGuion(texto), e.target);
+$("descargar").onclick = () => {
+  const base = (datosActuales?.titulo || "guion").toLowerCase().normalize("NFD").replace(/[^\w]+/g, "-").replace(/^-|-$/g, "").slice(0, 60);
+  descargar(`${base || "guion"}.md`, texto);
+};
+$("tabs").addEventListener("click", (e) => {
+  const b = e.target.closest("button[data-vista]");
+  if (!b) return;
+  vista = b.dataset.vista;
+  document.querySelectorAll("#tabs button").forEach((x) => x.classList.toggle("activo", x === b));
+  pintar();
+});
+CAMPOS.forEach((c) => $(c).addEventListener("input", () =>
+  store.set("guionista.borrador", Object.fromEntries(CAMPOS.map((k) => [k, $(k).value])))));
+
+const borrador = store.get("guionista.borrador", null);
+if (borrador) CAMPOS.forEach((c) => { if (borrador[c] !== undefined) $(c).value = borrador[c]; });
+pintarHistorial();
+
+fetch("/api/estado").then((r) => r.json()).then((s) => {
+  $("estado").textContent = s.apiKey ? `Conectado · modelo ${s.modelo}` : "⚠️ Falta ANTHROPIC_API_KEY en .env";
+}).catch(() => { $("estado").textContent = "Servidor no disponible"; });
+</script>
+</body>
+</html>
