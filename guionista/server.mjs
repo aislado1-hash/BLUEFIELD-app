@@ -7,10 +7,14 @@ import { fileURLToPath } from "node:url";
 import Anthropic from "@anthropic-ai/sdk";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-try {
-  process.loadEnvFile(path.join(here, "..", ".env"));
-} catch {
-  // sin .env: se usan las variables de entorno del sistema
+// .env junto al servidor (versión descargable) o en la raíz del repositorio.
+for (const env of [path.join(here, ".env"), path.join(here, "..", ".env")]) {
+  try {
+    process.loadEnvFile(env);
+    break;
+  } catch {
+    // sin .env aquí: se prueba el siguiente o se usan las variables del sistema
+  }
 }
 
 const PORT = Number(process.env.PORT) || 3000;
