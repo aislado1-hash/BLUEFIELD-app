@@ -139,7 +139,7 @@ input[type=color]{width:100%;height:40px;padding:4px;background:var(--input);bor
   <div class="row" style="margin-top:-3px"><div class="field" style="margin:0"><input id="voiceName" placeholder="Nombre de la voz" title="Ej.: Chico joven. Si lo dejas vacío, se usa el nombre del personaje."></div><button class="btn" id="voiceSave" style="flex:0 0 auto">💾 Guardar voz</button></div>
   <div class="small" id="voiceStatus">Guarda una voz una vez y elígela después en cualquier personaje y proyecto.</div>
 </div>
-<div class="row"><div class="field"><label title="Solo se usa con «Lado de las burbujas: Fijo»">Lado (modo fijo)</label><select id="charSide"><option value="left">Izquierda</option><option value="right">Derecha</option></select></div><div class="field"><label>Burbuja</label><input id="charColor" type="color"></div></div>
+<div class="row"><div class="field"><label title="Solo se usa con «Lado de las burbujas: Fijo»">Lado (modo fijo)</label><select id="charSide"><option value="left">Izquierda</option><option value="right">Derecha</option></select></div><div class="field"><label>Burbuja</label><div style="display:flex;gap:6px"><input id="charColor" type="color"><button class="btn" id="colorFromPhoto" style="flex:0 0 auto;padding:6px 9px" title="Usar el color del borde de la foto">🎨</button></div></div></div>
 <div class="row"><div class="field"><label>Texto</label><input id="charTextColor" type="color"></div><div class="field"><label>Trazo</label><input id="charStrokeColor" type="color"></div></div>
 <div class="row"><div class="field"><label>Tamaño personaje</label><input id="charSize" type="range" min="50" max="500" step="5"></div><div class="field"><label>Foto X</label><input id="photoX" type="range" min="-900" max="900" step="5"></div></div>
 <div class="row"><div class="field"><label>Burbuja X</label><input id="bubbleX" type="range" min="-1200" max="1200" step="5"></div><div class="field"><label>Foto Y</label><input id="photoY" type="range" min="-500" max="500" step="5"></div></div>
@@ -290,7 +290,38 @@ $("bubbleSize").oninput=()=>{const c=selChar();if(!c)return;c.bubbleSize=+$("bub
 $("nameSize").oninput=()=>{const c=selChar();if(!c)return;c.nameSize=+$("nameSize").value;$("nameSizeLabel").textContent=c.nameSize+" px";renderAt(currentTime)};
 $("ai33Voice").oninput=()=>{const c=selChar();if(c){c.ai33Voice=$("ai33Voice").value.trim();syncEventVoiceOptions();syncVoiceSelect();buildTimeline();renderAt(currentTime)}};
 $("ai33Speed").oninput=()=>{const c=selChar();if(c){c.ai33Speed=Math.max(.25,+$("ai33Speed").value||1);syncVoiceSelect();buildTimeline();renderAt(currentTime)}};
-$("imgFile").onchange=async e=>{const f=e.target.files[0];e.target.value="";const c=selChar();if(!f||!c)return;try{c.image=await uploadAsset("char",await readFileAsDataURL(f));renderAt(currentTime)}catch(err){$("status").textContent="Error al guardar la imagen: "+err.message}};
+$("imgFile").onchange=async e=>{const f=e.target.files[0];e.target.value="";const c=selChar();if(!f||!c)return;try{c.image=await uploadAsset("char",await readFileAsDataURL(f));await colorFromPhoto(c);renderAt(currentTime)}catch(err){$("status").textContent="Error al guardar la imagen: "+err.message}};
+$("colorFromPhoto").onclick=async()=>{const c=selChar();if(!c)return;if(!c.image){$("charsStatus").textContent="Este personaje no tiene foto.";return}await colorFromPhoto(c);renderAt(currentTime)};
+
+/* ───────── Color de burbuja desde el trazo de la foto ───────── */
+function loadImage(src){return new Promise((res,rej)=>{const im=new Image();im.onload=()=>res(im);im.onerror=()=>rej(Error("No se pudo leer la imagen"));im.src=src})}
+const toHex=(r,g,b)=>"#"+[r,g,b].map(v=>Math.round(v).toString(16).padStart(2,"0")).join("");
+/** Color del trazo/borde de la foto: desde cada borde de la imagen hacia el centro, el primer píxel que no es
+ *  fondo (transparente o del color de las esquinas); el color más repetido entre todos esos rayos. null si no hay trazo claro. */
+async function detectRingColor(src){
+  const im=await loadImage(src),N=256,cv=document.createElement("canvas");cv.width=cv.height=N;
+  const ctx=cv.getContext("2d",{willReadFrequently:true});ctx.drawImage(im,0,0,N,N);const px=ctx.getImageData(0,0,N,N).data;
+  const at=(x,y)=>{const i=(y*N+x)*4;return[px[i],px[i+1],px[i+2],px[i+3]]};
+  const corner=at(1,1),dist=(a,b)=>Math.abs(a[0]-b[0])+Math.abs(a[1]-b[1])+Math.abs(a[2]-b[2]);
+  const isBg=p=>p[3]<128||(corner[3]>=128&&dist(p,corner)<40);
+  const buckets=new Map(),c0=N/2,steps=144;
+  for(let k=0;k<steps;k++){const a=k/steps*Math.PI*2,dx=Math.cos(a),dy=Math.sin(a);
+    for(let r=c0-1;r>c0*0.5;r--){const x=Math.round(c0+dx*r),y=Math.round(c0+dy*r);if(x<0||y<0||x>=N||y>=N)continue;const p=at(x,y);if(isBg(p))continue;
+      // un par de píxeles hacia dentro, para no coger el borde suavizado
+      const q=at(Math.round(c0+dx*(r-2)),Math.round(c0+dy*(r-2)));const key=(q[0]>>4)+","+(q[1]>>4)+","+(q[2]>>4);
+      const b=buckets.get(key)||{n:0,r:0,g:0,b:0};b.n++;b.r+=q[0];b.g+=q[1];b.b+=q[2];buckets.set(key,b);break}}
+  const best=[...buckets.values()].sort((a,b)=>b.n-a.n)[0];
+  if(!best||best.n<steps*0.35)return null;   // sin un color dominante en el borde: no hay trazo
+  return toHex(best.r/best.n,best.g/best.n,best.b/best.n);
+}
+/** Pone como color de burbuja el del trazo de la foto, y el texto en blanco o negro según cuál se lea mejor. */
+async function colorFromPhoto(c){
+  try{const col=await detectRingColor(c.image);if(!col){$("charsStatus").textContent=`No se encontró un trazo de color claro en la foto de ${c.name}; el color de burbuja no cambia.`;return false}
+    const [r,g,b]=[1,3,5].map(i=>parseInt(col.slice(i,i+2),16)),lum=(0.299*r+0.587*g+0.114*b)/255;
+    c.color=col;c.textColor=lum>0.62?"#111111":"#ffffff";if(c===selChar())sync();
+    $("charsStatus").innerHTML=`<span style="color:var(--accent)">🎨 Burbuja de ${escapeHtml(c.name)}: color del trazo de su foto (${col}).</span>`;scheduleSave();return true}
+  catch(e){console.warn(e);return false}
+}
 $("addChar").onclick=()=>{const n=Object.keys(state.chars).length+1,side=n%2?"left":"right";addCharacter({name:"Personaje "+n,side,...C.theme({theme:state.theme})[side]});sync();drawChars();buildTimeline();renderAt(currentTime)};
 
 $("removeChar").onclick=()=>{const c=selChar();if(!c)return;if(!confirm(`¿Quitar a «${c.name}» de este proyecto? (sus líneas del guion dejarán de mostrarse)`))return;delete state.chars[state.selected];state.selected=Object.keys(state.chars)[0]||null;sync();drawChars();buildTimeline();renderAt(currentTime)};
