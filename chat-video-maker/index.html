@@ -143,7 +143,7 @@ input[type=color]{width:100%;height:40px;padding:4px;background:var(--input);bor
 <div class="row"><div class="field"><label>Texto</label><input id="charTextColor" type="color"></div><div class="field"><label>Trazo</label><input id="charStrokeColor" type="color"></div></div>
 <div class="row"><div class="field"><label>Tamaño personaje</label><input id="charSize" type="range" min="50" max="500" step="5"></div><div class="field"><label>Foto X</label><input id="photoX" type="range" min="-900" max="900" step="5"></div></div>
 <div class="row"><div class="field"><label>Burbuja X</label><input id="bubbleX" type="range" min="-1200" max="1200" step="5"></div><div class="field"><label>Foto Y</label><input id="photoY" type="range" min="-500" max="500" step="5"></div></div>
-<div class="row"><div class="field"><label>Tamaño burbuja <span id="bubbleSizeLabel">100%</span></label><input id="bubbleSize" type="range" min="60" max="300" step="1" value="100"></div><div class="field"><label>Tamaño nombre <span id="nameSizeLabel">30 px</span></label><input id="nameSize" type="range" min="14" max="72" step="1" value="30"></div></div>
+<div class="row"><div class="field"><label>Tamaño burbuja <span id="bubbleSizeLabel">150%</span></label><input id="bubbleSize" type="range" min="60" max="300" step="1" value="150"></div><div class="field"><label>Tamaño nombre <span id="nameSizeLabel">45 px</span></label><input id="nameSize" type="range" min="14" max="72" step="1" value="45"></div></div>
 </div></details>
 
 <details class="sectionDetails">
@@ -232,8 +232,8 @@ input[type=color]{width:100%;height:40px;padding:4px;background:var(--input);bor
 const $=id=>document.getElementById(id);
 const C=window.ChatCore;
 const state={projectSlug:"",projectName:"",loaded:false,groupName:"Chat de grupo",groupMembers:24,headerSize:108,initialTitle:"",initialTitleAudio:null,initialTitleAudioCacheKey:"",initialTitleDuration:0,titleAudios:[],initialTitleFont:"Arial",initialTitleSize:72,initialTitleColor:"#ffffff",initialTitleStrokeColor:"#000000",initialTitleStroke:0,eventSize:28,theme:"clasico",library:[],voices:[],music:null,musicName:"",musicVolume:25,musicDuck:8,musicEl:null,groupEvents:[],chars:{},selected:null,bgColor:"#11131a",bgImage:null,bgFit:"cover",sound:null,dialogueMessages:[],playing:false,raf:0,audioCtx:null,audioBuffer:null,audioSources:[],players:[],lastProject:null};
-const demo={a:{name:"Real Madrid",side:"right",color:"#39c96b",textColor:"#fff",strokeColor:"#000",stroke:2,size:150,photoX:0,photoY:0,bubbleX:0,bubbleSize:100,nameSize:30,image:""},
-b:{name:"Barcelona",side:"left",color:"#ff5d83",textColor:"#fff",strokeColor:"#000",stroke:2,size:150,photoX:0,photoY:0,bubbleX:0,bubbleSize:100,nameSize:30,image:""}};
+const demo={a:{name:"Real Madrid",side:"right",color:"#39c96b",textColor:"#fff",strokeColor:"#000",stroke:2,size:150,photoX:0,photoY:0,bubbleX:0,bubbleSize:150,nameSize:45,image:""},
+b:{name:"Barcelona",side:"left",color:"#ff5d83",textColor:"#fff",strokeColor:"#000",stroke:2,size:150,photoX:0,photoY:0,bubbleX:0,bubbleSize:150,nameSize:45,image:""}};
 function escapeHtml(v){return String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]))}
 async function postJSON(url,body){const r=await fetch(url,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body||{})});let j;try{j=await r.json()}catch(_){throw Error("Respuesta no válida del servidor ("+r.status+")")}if(!j.ok)throw Error(j.error||"Error");return j}
 function readFileAsDataURL(file){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(String(r.result||""));r.onerror=()=>rej(r.error);r.readAsDataURL(file)})}
@@ -326,7 +326,7 @@ $("addChar").onclick=()=>{const n=Object.keys(state.chars).length+1,side=n%2?"le
 
 $("removeChar").onclick=()=>{const c=selChar();if(!c)return;if(!confirm(`¿Quitar a «${c.name}» de este proyecto? (sus líneas del guion dejarán de mostrarse)`))return;delete state.chars[state.selected];state.selected=Object.keys(state.chars)[0]||null;sync();drawChars();buildTimeline();renderAt(currentTime)};
 function newCharId(){return "c"+Date.now().toString(36)+Math.random().toString(36).slice(2,5)}
-function addCharacter(data){const id=newCharId();state.chars[id]={side:"left",color:"#39c96b",textColor:"#ffffff",strokeColor:"#000000",stroke:2,size:150,photoX:0,photoY:0,bubbleX:0,bubbleSize:100,nameSize:30,image:"",...data};state.selected=id;return id}
+function addCharacter(data){const id=newCharId();state.chars[id]={side:"left",color:"#39c96b",textColor:"#ffffff",strokeColor:"#000000",stroke:2,size:150,photoX:0,photoY:0,bubbleX:0,bubbleSize:150,nameSize:45,image:"",...data};state.selected=id;return id}
 
 /* ───────── Biblioteca de personajes ───────── */
 async function loadLibrary(){try{const j=await (await fetch("/library")).json();state.library=j.characters||[]}catch(_){state.library=[]}const sel=$("libSelect");sel.innerHTML="";if(!state.library.length){sel.innerHTML='<option value="">(biblioteca vacía)</option>';return}state.library.forEach(c=>{const o=document.createElement("option");o.value=c.name;o.textContent=c.name+(c.ai33Voice?" · 🗣":"");sel.append(o)})}
