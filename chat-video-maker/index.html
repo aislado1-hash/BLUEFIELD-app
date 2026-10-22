@@ -149,7 +149,7 @@ input[type=color]{width:100%;height:40px;padding:4px;background:var(--input);bor
 <details class="sectionDetails">
 <summary>02 · Conversación</summary>
 <div class="sectionBody">
-<div class="hint">Una línea por mensaje: <b>Nombre: texto</b>. Extras: <b>Titulo inicial: "…"</b> al principio · <b>evento: Juan sacó a Pepe del grupo</b> · reacciones al final de un mensaje: <b>Pepe: Golazo {r: 😂3 🔥 💀}</b> (el número es cuántas personas reaccionan).</div>
+<div class="hint">Una línea por mensaje: <b>Nombre: texto</b>. Extras: <b>Titulo inicial: "…"</b> al principio y <b>Titulo inicial 2: "…"</b>, <b>Titulo inicial 3: "…"</b>… en cualquier punto del guion · <b>evento: Juan sacó a Pepe del grupo</b> · reacciones al final de un mensaje: <b>Pepe: Golazo {r: 😂3 🔥 💀}</b> (el número es cuántas personas reaccionan).</div>
 <div class="row"><div class="field"><label>Tipografía del título inicial</label><select id="initialTitleFont"><option value="Arial">Arial</option><option value="Georgia">Georgia</option><option value="Verdana">Verdana</option><option value="Trebuchet MS">Trebuchet MS</option><option value="Courier New">Courier New</option><option value="Impact">Impact</option></select></div><div class="field"><label>Tamaño del título</label><input id="initialTitleSize" type="number" min="20" max="180" step="1" value="72"></div></div>
 <div class="row"><div class="field"><label>Color del título</label><input id="initialTitleColor" type="color" value="#ffffff"></div><div class="field"><label>Color del trazo</label><input id="initialTitleStrokeColor" type="color" value="#000000"></div><div class="field"><label>Tamaño de trazo</label><input id="initialTitleStroke" type="number" min="0" max="20" step="0.5" value="0"></div></div>
 <textarea id="script"></textarea>
@@ -184,8 +184,8 @@ input[type=color]{width:100%;height:40px;padding:4px;background:var(--input);bor
   <div class="field"><label id="eventValueLabel">—</label><input id="eventValue" placeholder="Quién la saca (opcional)" disabled></div>
 </div>
 <div class="row"><div class="field"><label>Voz AI33 del evento</label><select id="eventVoice"><option value="">Automática según la persona</option></select></div><div class="field"><label>Tamaño del texto del evento (px)</label><input id="eventSize" type="number" min="14" max="96" step="1" value="28"></div></div>
-<div class="row"><button class="btn primary" id="addGroupEvent">+ Añadir evento</button><button class="btn" id="clearGroupEvents">✕ Quitar todos</button><button class="btn" id="generateEventAudio">🗣️ Generar audios de eventos + título inicial</button></div>
-<div class="small" id="eventAudioStatus">Los eventos y el título inicial generan su audio AI33 de forma secuencial. El título inicial espera 2 segundos después de terminar antes de comenzar el chat.</div>
+<div class="row"><button class="btn primary" id="addGroupEvent">+ Añadir evento</button><button class="btn" id="clearGroupEvents">✕ Quitar todos</button><button class="btn" id="generateEventAudio">🗣️ Generar audios de eventos + títulos</button></div>
+<div class="small" id="eventAudioStatus">Los eventos y los títulos (Titulo inicial, Titulo inicial 2, 3…) generan su audio AI33 de forma secuencial. Cada título se queda 2 segundos después de terminar su audio y luego sigue el chat.</div>
 <div id="groupEventsList"></div>
 </div></details>
 
@@ -231,7 +231,7 @@ input[type=color]{width:100%;height:40px;padding:4px;background:var(--input);bor
 "use strict";
 const $=id=>document.getElementById(id);
 const C=window.ChatCore;
-const state={projectSlug:"",projectName:"",loaded:false,groupName:"Chat de grupo",groupMembers:24,headerSize:108,initialTitle:"",initialTitleAudio:null,initialTitleAudioCacheKey:"",initialTitleDuration:0,initialTitleFont:"Arial",initialTitleSize:72,initialTitleColor:"#ffffff",initialTitleStrokeColor:"#000000",initialTitleStroke:0,eventSize:28,theme:"clasico",library:[],voices:[],music:null,musicName:"",musicVolume:25,musicDuck:8,musicEl:null,groupEvents:[],chars:{},selected:null,bgColor:"#11131a",bgImage:null,bgFit:"cover",sound:null,dialogueMessages:[],playing:false,raf:0,audioCtx:null,audioBuffer:null,audioSources:[],players:[],lastProject:null};
+const state={projectSlug:"",projectName:"",loaded:false,groupName:"Chat de grupo",groupMembers:24,headerSize:108,initialTitle:"",initialTitleAudio:null,initialTitleAudioCacheKey:"",initialTitleDuration:0,titleAudios:[],initialTitleFont:"Arial",initialTitleSize:72,initialTitleColor:"#ffffff",initialTitleStrokeColor:"#000000",initialTitleStroke:0,eventSize:28,theme:"clasico",library:[],voices:[],music:null,musicName:"",musicVolume:25,musicDuck:8,musicEl:null,groupEvents:[],chars:{},selected:null,bgColor:"#11131a",bgImage:null,bgFit:"cover",sound:null,dialogueMessages:[],playing:false,raf:0,audioCtx:null,audioBuffer:null,audioSources:[],players:[],lastProject:null};
 const demo={a:{name:"Real Madrid",side:"right",color:"#39c96b",textColor:"#fff",strokeColor:"#000",stroke:2,size:150,photoX:0,photoY:0,bubbleX:0,bubbleSize:100,nameSize:30,image:""},
 b:{name:"Barcelona",side:"left",color:"#ff5d83",textColor:"#fff",strokeColor:"#000",stroke:2,size:150,photoX:0,photoY:0,bubbleX:0,bubbleSize:100,nameSize:30,image:""}};
 function escapeHtml(v){return String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]))}
@@ -363,10 +363,10 @@ function syncSoundStatus(name){$("soundStatus").textContent=state.sound?"🔊 So
 
 /* ───────── Eventos del grupo ───────── */
 function autoEventVoice(actor){const cs=Object.values(state.chars);const c=C.findChar(cs,actor);return c?.ai33Voice||cs.find(x=>x.ai33Voice)?.ai33Voice||""}
-/** Sincroniza título inicial y eventos "evento:" desde el guion (conservando audios ya generados). */
+/** Sincroniza títulos y eventos "evento:" desde el guion (conservando audios ya generados). */
 function syncScriptState(){
   const parsed=C.parseScript($("script").value,Object.values(state.chars));
-  if(parsed.initialTitle!==state.initialTitle){state.initialTitle=parsed.initialTitle;state.initialTitleAudio=null;state.initialTitleDuration=0;state.initialTitleAudioCacheKey=""}
+  state.titles=parsed.titles;state.initialTitle=parsed.initialTitle;
   state.groupEvents=C.mergeGroupEvents(state.groupEvents,parsed.scriptEvents).map(ev=>String(ev.id||"").startsWith("script-")?{...ev,voice_id:ev.voice_id||autoEventVoice(""),speed:ev.speed||1}:ev);
   state.groupEvents.sort((a,b)=>(Number(a.afterMessage)||0)-(Number(b.afterMessage)||0));
   return parsed;
@@ -380,7 +380,7 @@ $("clearGroupEvents").onclick=()=>{state.groupEvents=state.groupEvents.filter(e=
 
 /* ───────── Proyecto y línea de tiempo ───────── */
 let events=[],cues=[],totalMs=0,currentTime=0;
-function project(){const res=$("resolution")?.value||"1920x1080";const [videoWidth,videoHeight]=res.split("x").map(Number);return{projectSlug:state.projectSlug||"",projectName:state.projectName||"",videoWidth,videoHeight,groupName:state.groupName,groupMembers:state.groupMembers,headerSize:state.headerSize,initialTitle:state.initialTitle,initialTitleAudio:state.initialTitleAudio,initialTitleAudioCacheKey:state.initialTitleAudioCacheKey||"",initialTitleDuration:state.initialTitleDuration,initialTitleFont:state.initialTitleFont,initialTitleSize:state.initialTitleSize,initialTitleColor:state.initialTitleColor,initialTitleStrokeColor:state.initialTitleStrokeColor,initialTitleStroke:state.initialTitleStroke,eventSize:state.eventSize,groupEvents:state.groupEvents,chars:Object.values(state.chars),script:$("script").value,delay:+$("delay").value||0,typing:+$("typing").value||0,duration:+$("duration").value||2.2,anim:$("anim").value,sideMode:$("sideMode").value,bg:state.bgColor,bgColor:state.bgColor,bgImage:state.bgImage,bgFit:state.bgFit,fps:+$("fps").value||30,sound:state.sound,music:state.music,musicName:state.musicName||"",musicVolume:state.musicVolume,musicDuck:state.musicDuck,dialogueMessages:state.dialogueMessages,popupDelay:0.35,theme:state.theme||"clasico",renderSpeed:$("renderSpeed").value}}
+function project(){const res=$("resolution")?.value||"1920x1080";const [videoWidth,videoHeight]=res.split("x").map(Number);return{projectSlug:state.projectSlug||"",projectName:state.projectName||"",videoWidth,videoHeight,groupName:state.groupName,groupMembers:state.groupMembers,headerSize:state.headerSize,initialTitle:state.initialTitle,initialTitleAudio:state.initialTitleAudio,initialTitleAudioCacheKey:state.initialTitleAudioCacheKey||"",initialTitleDuration:state.initialTitleDuration,titleAudios:state.titleAudios,initialTitleFont:state.initialTitleFont,initialTitleSize:state.initialTitleSize,initialTitleColor:state.initialTitleColor,initialTitleStrokeColor:state.initialTitleStrokeColor,initialTitleStroke:state.initialTitleStroke,eventSize:state.eventSize,groupEvents:state.groupEvents,chars:Object.values(state.chars),script:$("script").value,delay:+$("delay").value||0,typing:+$("typing").value||0,duration:+$("duration").value||2.2,anim:$("anim").value,sideMode:$("sideMode").value,bg:state.bgColor,bgColor:state.bgColor,bgImage:state.bgImage,bgFit:state.bgFit,fps:+$("fps").value||30,sound:state.sound,music:state.music,musicName:state.musicName||"",musicVolume:state.musicVolume,musicDuck:state.musicDuck,dialogueMessages:state.dialogueMessages,popupDelay:0.35,theme:state.theme||"clasico",renderSpeed:$("renderSpeed").value}}
 function buildTimeline(){
   syncScriptState();
   state.lastProject=project();
@@ -390,12 +390,12 @@ function buildTimeline(){
   const popup=(state.lastProject.popupDelay??0.35)*1000;
   cues=[];
   for(const e of events){
-    if(e.kind==="intro"&&e.audio)cues.push({t:0,audio:e.audio});
+    if(e.kind==="intro"&&e.audio)cues.push({t:e.start,audio:e.audio});
     if(e.kind==="system"&&e.audio)cues.push({t:e.visibleStart+120,audio:e.audio});
     if(e.kind==="message"){cues.push({t:e.visibleStart,pop:true,short:!!e.audio});if(e.audio)cues.push({t:e.visibleStart+popup,audio:e.audio})}
   }
   const tl=$("timeline");$("timelineMeta").textContent=`${(totalMs/1000).toFixed(2)} s`;tl.innerHTML="";
-  events.forEach((e,i)=>{const row=document.createElement("div");row.className="trow "+(e.kind==="system"?"systemRow":e.kind==="intro"?"introRow":"");row.id="tr"+i;const dur=e.audioDuration?e.audioDuration.toFixed(2)+"s":e.audioMissing?'<span class="noVoice">⚠ sin voz</span>':"";const label=e.kind==="system"?"⚙ Evento":e.kind==="intro"?"🎬 Título inicial":escapeHtml(e.char.name);row.innerHTML=`<span class="tbadge">${(e.start/1000).toFixed(1)}s</span><b>${label}</b><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(e.text)}</span><span>${dur}</span>`;tl.append(row)});
+  events.forEach((e,i)=>{const row=document.createElement("div");row.className="trow "+(e.kind==="system"?"systemRow":e.kind==="intro"?"introRow":"");row.id="tr"+i;const dur=e.audioDuration?e.audioDuration.toFixed(2)+"s":e.audioMissing?'<span class="noVoice">⚠ sin voz</span>':"";const label=e.kind==="system"?"⚙ Evento":e.kind==="intro"?"🎬 "+escapeHtml(e.label||"Título inicial"):escapeHtml(e.char.name);row.innerHTML=`<span class="tbadge">${(e.start/1000).toFixed(1)}s</span><b>${label}</b><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(e.text)}</span><span>${dur}</span>`;tl.append(row)});
   tl.querySelectorAll(".trow").forEach((row,i)=>row.onclick=()=>{const e=events[i];seek(e.kind==="message"?Math.min(e.end-1,e.visibleStart+400):e.visibleStart+200)});
   const sk=$("seek");sk.max=Math.max(1,Math.round(totalMs));$("seekTotal").textContent=(totalMs/1000).toFixed(1)+" s";
   const unknown=r.parsed.unknownNames,warns=[];
@@ -522,15 +522,20 @@ $("generateEventAudio").onclick=async()=>{
   askNotifyPermission();closeAutoNotice();
   const key=ai33Key();if(!key){$("eventAudioStatus").textContent="Introduce la API Key de AI33 en el apartado de Voces.";return}
   buildTimeline();
-  if(!state.groupEvents.length&&!state.initialTitle){$("eventAudioStatus").textContent="No hay eventos ni título inicial para generar.";return}
+  const titles=state.titles||[];
+  if(!state.groupEvents.length&&!titles.length){$("eventAudioStatus").textContent="No hay eventos ni títulos para generar.";return}
   const items=state.groupEvents.map((ev,i)=>{const text=C.eventSpeech(ev),voice=(ev.voice_id||autoEventVoice(ev.actor)||"").trim(),speed=Math.max(.25,Number(ev.speed)||1),cache=cachedAudioInfo(text,voice,speed,"event",ev);return{eventIndex:i,kind:"event",text,voice_id:voice,speed,cacheKey:cache.cacheKey,existingAudio:cache.existingAudio}});
-  if(state.initialTitle){const voice=Object.values(state.chars).find(c=>c.ai33Voice)?.ai33Voice||"",cache=cachedAudioInfo(state.initialTitle,voice,1,"initialTitle",{audio:state.initialTitleAudio,cacheKey:state.initialTitleAudioCacheKey});items.unshift({eventIndex:-1,kind:"initialTitle",text:state.initialTitle,voice_id:voice,speed:1,cacheKey:cache.cacheKey,existingAudio:cache.existingAudio})}
+  // Títulos: eventIndex negativo (-1 = título 1, -2 = título 2…).
+  const chars=Object.values(state.chars),voice=C.titleVoice(chars);
+  titles.slice().reverse().forEach((t,ri)=>{const ti=titles.length-1-ri,old=C.titleAudioFor({...project(),chars},t,ti);const cache=cachedAudioInfo(t.text,voice,1,"initialTitle",old?{audio:old.audio,cacheKey:C.titleAudioKey(t.text,chars)}:null);items.unshift({eventIndex:-(ti+1),kind:"initialTitle",text:t.text,voice_id:voice,speed:1,cacheKey:cache.cacheKey,existingAudio:cache.existingAudio})});
   if(items.some(x=>!x.voice_id)){$("eventAudioStatus").textContent="Falta una voz AI33 para algún evento. Configura una voz en un personaje o selecciona una voz en el evento.";return}
   $("generateEventAudio").disabled=true;$("eventAudioStatus").textContent="Generando audios de eventos, uno por uno…";
   try{
     const j=await postJSON("/ai33/messages",{projectSlug:state.projectSlug,api_key:key,messages:items});
     const p=await pollJob("/ai33/progress/"+j.job,p=>{$("eventAudioStatus").textContent=p.message||"Procesando eventos…"});
-    for(const res of (p.results||[])){const idx=Number(res.eventIndex);if(idx===-1){state.initialTitleAudio=res.audio;state.initialTitleDuration=Number(res.duration)||0;state.initialTitleAudioCacheKey=res.cacheKey||""}else if(state.groupEvents[idx]){Object.assign(state.groupEvents[idx],{audio:res.audio,audioDuration:Number(res.duration)||0,audioCacheKey:res.cacheKey||""})}}
+    const titleAudios=[];
+    for(const res of (p.results||[])){const idx=Number(res.eventIndex);if(idx<0){if(res.audio)titleAudios.push({cacheKey:res.cacheKey||"",audio:res.audio,duration:Number(res.duration)||0});if(idx===-1){state.initialTitleAudio=res.audio;state.initialTitleDuration=Number(res.duration)||0;state.initialTitleAudioCacheKey=res.cacheKey||""}}else if(state.groupEvents[idx]){Object.assign(state.groupEvents[idx],{audio:res.audio,audioDuration:Number(res.duration)||0,audioCacheKey:res.cacheKey||""})}}
+    if(titles.length)state.titleAudios=titleAudios;
     buildTimeline();renderGroupEvents();renderAt(currentTime);await saveNow();
     $("eventAudioStatus").textContent=`✓ ${(p.results||[]).length} audios disponibles; solo se generaron los que faltaban.`;
     startAutoRender();
@@ -605,7 +610,7 @@ function applyProjectData(rp){
   if(rp.groupMembers!=null)state.groupMembers=Math.max(0,Number(rp.groupMembers)||0);
   state.headerSize=Number(rp.headerSize)||108;state.eventSize=Number(rp.eventSize)||28;
   if(rp.initialTitle!=null)state.initialTitle=String(rp.initialTitle);
-  state.initialTitleAudio=rp.initialTitleAudio||null;state.initialTitleAudioCacheKey=rp.initialTitleAudioCacheKey||"";state.initialTitleDuration=Number(rp.initialTitleDuration)||0;
+  state.initialTitleAudio=rp.initialTitleAudio||null;state.initialTitleAudioCacheKey=rp.initialTitleAudioCacheKey||"";state.initialTitleDuration=Number(rp.initialTitleDuration)||0;state.titleAudios=Array.isArray(rp.titleAudios)?rp.titleAudios:[];
   state.initialTitleFont=rp.initialTitleFont||"Arial";state.initialTitleSize=Number(rp.initialTitleSize)||72;state.initialTitleColor=rp.initialTitleColor||"#ffffff";state.initialTitleStrokeColor=rp.initialTitleStrokeColor||"#000000";state.initialTitleStroke=Number(rp.initialTitleStroke)||0;
   if(Array.isArray(rp.groupEvents))state.groupEvents=rp.groupEvents;
   if(Array.isArray(rp.chars)&&rp.chars.length){state.chars={};rp.chars.forEach((c,i)=>state.chars["c"+i]={bubbleSize:100,...c});state.selected=Object.keys(state.chars)[0]||null}

@@ -19,7 +19,7 @@
   C.BLANK_IMG = 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=';
   C.REACT_POP_MS = 260;
 
-  const TITLE_RE = /^t[ií]tulo inicial\s*:/i;
+  const TITLE_RE = /^t[ií]tulo inicial(?:\s*(\d+))?\s*:/i;
   const EVENT_RE = /^evento\s*:/i;
   const REACT_RE = /\{\s*(?:reacci[oó]n(?:es)?|r)\s*:\s*([^}]*)\}\s*$/i;
   const px = (n) => `${Math.round(Number(n) * 100) / 100}px`;
@@ -129,19 +129,28 @@
   };
 
   /**
-   * Lee el guion: título inicial, mensajes (con reacciones) y eventos "evento:".
+   * Lee el guion: títulos, mensajes (con reacciones) y eventos "evento:".
+   * Títulos: "Titulo inicial:", "Titulo inicial 2:", "Titulo inicial 3:"… Cada uno sale en pantalla
+   * completa en el punto del guion donde está escrito. Si se repite "Titulo inicial:" sin número,
+   * se numera solo (2, 3…) según el orden.
    * Reacciones: al final del mensaje → "Pepe: Golazo {r: 😂3 🔥}"  o  "{reacciones: 😂 🔥}"
    */
   C.parseScript = (script, chars) => {
-    const out = { initialTitle: '', messages: [], scriptEvents: [], unknownNames: [] };
-    let idx = 0;
+    const out = { initialTitle: '', titles: [], messages: [], scriptEvents: [], unknownNames: [] };
+    let idx = 0, order = 0;
     for (const raw of String(script || '').split('\n')) {
       const line = raw.trim();
       if (!line) continue;
-      if (TITLE_RE.test(line)) { out.initialTitle = C.stripQuotes(line.replace(TITLE_RE, '')); continue; }
+      order++;
+      const tm = line.match(TITLE_RE);
+      if (tm) {
+        const text = C.stripQuotes(line.replace(TITLE_RE, ''));
+        if (text) out.titles.push({ number: tm[1] ? parseInt(tm[1], 10) : out.titles.length + 1, text, afterMessage: idx, order });
+        continue;
+      }
       if (EVENT_RE.test(line)) {
         const t = C.stripQuotes(line.replace(EVENT_RE, ''));
-        if (t) out.scriptEvents.push({ id: 'script-' + out.scriptEvents.length, type: 'custom', afterMessage: idx, text: t, speech: t });
+        if (t) out.scriptEvents.push({ id: 'script-' + out.scriptEvents.length, type: 'custom', afterMessage: idx, order, text: t, speech: t });
         continue;
       }
       const p = line.indexOf(':');
@@ -155,8 +164,12 @@
       if (rm) { reactions = C.parseReactions(rm[1]); text = text.replace(REACT_RE, '').trim(); }
       out.messages.push({ char: c, text, reactions, lineIndex: idx++ });
     }
+    out.initialTitle = out.titles.length ? out.titles[0].text : '';
     return out;
   };
+
+  /** Nombre visible de un título: "Título inicial", "Título inicial 2"… */
+  C.titleLabel = (t) => (!t || t.number <= 1 ? 'Título inicial' : 'Título inicial ' + t.number);
 
   /* ───────────────────────── Voces (caché) ───────────────────────── */
 
@@ -178,6 +191,20 @@
     let h = 2166136261;
     for (let i = 0; i < raw.length; i++) { h ^= raw.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; }
     return h.toString(16).padStart(8, '0');
+  };
+
+  /** Voz de los títulos: la del primer personaje que tenga voz. */
+  C.titleVoice = (chars) => String(((chars || []).find((c) => c && c.ai33Voice) || {}).ai33Voice || '').trim();
+  C.titleAudioKey = (text, chars) => C.audioCacheKey(text, C.titleVoice(chars), 1, 'initialTitle');
+
+  /** Audio de un título: se busca por contenido (texto + voz) en titleAudios; el primero admite el formato antiguo. */
+  C.titleAudioFor = (p, title, i) => {
+    const key = C.titleAudioKey(title.text, p.chars);
+    const hit = (Array.isArray(p.titleAudios) ? p.titleAudios : []).find((x) => x && x.cacheKey === key && x.audio && Number(x.duration) > 0);
+    if (hit) return { audio: hit.audio, duration: Number(hit.duration) };
+    if (i === 0 && p.initialTitleAudio && (p.initialTitleAudioCacheKey ? p.initialTitleAudioCacheKey === key : p.initialTitle === title.text))
+      return { audio: p.initialTitleAudio, duration: Number(p.initialTitleDuration) || 0 };
+    return null;
   };
 
   /** Clave del audio que corresponde a un mensaje del guion (según su texto y la voz actual del personaje). */
@@ -275,19 +302,27 @@
     const out = [];
     let cursor = 0;
 
-    if (parsed.initialTitle) {
-      const secs = Number(p.initialTitleDuration) || 0;
-      const end = secs * 1000 + 2000;
-      out.push({ kind: 'intro', key: 'intro', text: parsed.initialTitle, start: 0, typingStart: 0, visibleStart: 0, end, audio: p.initialTitleAudio || null, audioDuration: secs });
-      cursor = end;
-    }
-
+    // Títulos y eventos se colocan en su sitio del guion; en el mismo hueco, por orden de línea
+    // (los eventos añadidos a mano, sin línea en el guion, van detrás).
     const byAfter = new Map();
-    groupEvents.forEach((ev, gi) => {
-      const k = clamp(Number(ev.afterMessage) || 0, 0, parsed.messages.length);
+    const place = (afterMessage, item) => {
+      const k = clamp(Number(afterMessage) || 0, 0, parsed.messages.length);
       if (!byAfter.has(k)) byAfter.set(k, []);
-      byAfter.get(k).push({ ev, gi });
-    });
+      byAfter.get(k).push(item);
+    };
+    parsed.titles.forEach((title, ti) => place(title.afterMessage, { title, ti, order: title.order }));
+    groupEvents.forEach((ev, gi) => place(ev.afterMessage, { ev, gi, order: Number(ev.order) || Infinity }));
+    byAfter.forEach((list) => list.sort((a, b) => a.order - b.order));
+
+    // Un título ocupa la pantalla mientras suena su audio y 2 s más; después sigue el chat.
+    const pushTitle = ({ title, ti }) => {
+      const a = C.titleAudioFor(p, title, ti);
+      const secs = a ? a.duration : 0;
+      const start = cursor;
+      const end = start + secs * 1000 + 2000;
+      out.push({ kind: 'intro', key: 'intro-' + ti, text: title.text, label: C.titleLabel(title), titleIndex: ti, start, typingStart: start, visibleStart: start, end, audio: a ? a.audio : null, audioDuration: secs });
+      cursor = end;
+    };
 
     const pushSystem = ({ ev, gi }) => {
       const start = cursor + d;
@@ -306,7 +341,7 @@
     let missingAudio = 0;
 
     for (let i = 0; i <= parsed.messages.length; i++) {
-      (byAfter.get(i) || []).forEach(pushSystem);
+      (byAfter.get(i) || []).forEach((x) => (x.title ? pushTitle(x) : pushSystem(x)));
       if (i === parsed.messages.length) break;
       const m = parsed.messages[i];
       // Solo se guarda el lado del turno; el personaje sigue siendo el objeto real (así los cambios
@@ -339,8 +374,8 @@
 
   /** Qué hay en pantalla en el instante ms. */
   C.frameAt = (p, events, ms) => {
-    const intro = events.find((e) => e.kind === 'intro');
-    if (intro && ms < intro.end) return { intro, shown: [], typing: null, header: null, sig: 'intro', animating: false };
+    const intro = events.find((e) => e.kind === 'intro' && ms >= e.start && ms < e.end);
+    if (intro) return { intro, shown: [], typing: null, header: null, sig: intro.key, animating: false };
     // Lado del turno aplicado sobre el personaje ACTUAL (sin copias guardadas).
     const withSide = (e) => (e && e.kind === 'message' && e.side && e.char && e.char.side !== e.side) ? { ...e, char: { ...e.char, side: e.side } } : e;
     const shown = events.filter((e) => (e.kind === 'message' || e.kind === 'system') && ms >= e.visibleStart).map(withSide);
@@ -390,13 +425,13 @@
   C.MUSIC_FADE_IN_MS = 800;
   C.MUSIC_FADE_OUT_MS = 1500;
 
-  /** Tramos [inicio, fin] (ms) en los que suena una voz: título inicial, eventos y mensajes. Mismos tiempos que el MP4. */
+  /** Tramos [inicio, fin] (ms) en los que suena una voz: títulos, eventos y mensajes. Mismos tiempos que el MP4. */
   C.voiceSegments = (p, events) => {
     const popup = Math.max(0, Number(p.popupDelay ?? 0.35)) * 1000;
     const segs = [];
     for (const e of events || []) {
       if (!e.audio || !(Number(e.audioDuration) > 0)) continue;
-      const s = e.kind === 'intro' ? 0 : e.kind === 'system' ? e.visibleStart + 120 : e.visibleStart + popup;
+      const s = e.kind === 'intro' ? e.start : e.kind === 'system' ? e.visibleStart + 120 : e.visibleStart + popup;
       segs.push([s, s + Number(e.audioDuration) * 1000]);
     }
     return segs;

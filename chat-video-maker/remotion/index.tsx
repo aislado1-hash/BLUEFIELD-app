@@ -108,7 +108,7 @@ const ChatVideo: React.FC<Project> = (project) => {
       {events.map((e: any) => {
         if (e.kind === 'intro' && e.audio) {
           const dur = framesOf(e.audioDuration || 0.1);
-          return <Sequence key={`a-${e.key}`} from={0} durationInFrames={dur}><Audio src={asset(e.audio)!} startFrom={0} durationInFrames={dur} /></Sequence>;
+          return <Sequence key={`a-${e.key}`} from={toFrame(e.start)} durationInFrames={dur}><Audio src={asset(e.audio)!} startFrom={0} durationInFrames={dur} /></Sequence>;
         }
         if (e.kind === 'system' && e.audio) {
           const dur = framesOf(e.audioDuration || (e.end - e.visibleStart) / 1000);
@@ -141,7 +141,7 @@ const ChatVideo: React.FC<Project> = (project) => {
 const EMPTY: Project = {
   videoWidth: 1920, videoHeight: 1080, bgColor: '#11131a', bgImage: null, bgFit: 'cover', theme: 'clasico',
   groupName: 'Chat de grupo', groupMembers: 24, headerSize: 108, eventSize: 28,
-  initialTitle: '', initialTitleAudio: null, initialTitleDuration: 0, groupEvents: [],
+  initialTitle: '', initialTitleAudio: null, initialTitleDuration: 0, titleAudios: [], groupEvents: [],
   chars: [], script: '', delay: 0, typing: 0, duration: 2.2, anim: 'Pop', fps: 30,
   sound: null, music: null, musicVolume: 25, musicDuck: 8, dialogueMessages: [], popupDelay: 0.35,
 };

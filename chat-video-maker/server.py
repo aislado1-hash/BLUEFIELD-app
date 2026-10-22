@@ -153,6 +153,7 @@ def asset_refs(payload):
     for m in payload.get("dialogueMessages") or []: refs.append(("audio de mensaje", m.get("audio")))
     for ev in payload.get("groupEvents") or []: refs.append(("audio de evento", ev.get("audio")))
     refs.append(("audio del título inicial", payload.get("initialTitleAudio")))
+    for t in payload.get("titleAudios") or []: refs.append(("audio de título", t.get("audio")))
     refs.append(("sonido", payload.get("sound")))
     refs.append(("música de fondo", payload.get("music")))
     refs.append(("fondo", payload.get("bgImage")))

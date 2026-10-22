@@ -23,6 +23,7 @@ evento: María cambió el título del grupo a Viaje a Madrid
 ```
 
 - `Titulo inicial:` se muestra centrado al principio, con su propio audio; el chat empieza 2 s después.
+- **Varios títulos:** `Titulo inicial 2:`, `Titulo inicial 3:`… se pueden poner en cualquier punto del guion. Cada uno aparece en pantalla completa justo donde está escrito, con su propio audio, y 2 s después el chat sigue donde estaba. Si repites `Titulo inicial:` sin número, se numeran solos por orden.
 - `Nombre: texto` es un mensaje del personaje con ese nombre.
 - `evento:` es un aviso del sistema `[ … ]` con su propio audio.
   Si la frase dice que alguien **sale / es sacado / es eliminado** del grupo, **se une / es añadido** al grupo o **cambia el título del grupo a …**, la cabecera se actualiza sola.
