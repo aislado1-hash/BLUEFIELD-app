@@ -302,6 +302,12 @@ async function loadLibrary(){try{const j=await (await fetch("/library")).json();
 const libFind=name=>state.library.find(x=>String(x.name).trim().toLowerCase()===String(name||"").trim().toLowerCase());
 function libToChar(lc){const {id,updatedAt,...rest}=lc;return JSON.parse(JSON.stringify(rest))}
 
+/* ───────── Personajes de proyectos anteriores ───────── */
+async function loadPastChars(){try{const j=await (await fetch("/projects/characters?exclude="+encodeURIComponent(state.projectSlug||""))).json();state.pastChars=j.characters||[]}catch(_){state.pastChars=[]}}
+const pastFind=name=>(state.pastChars||[]).find(x=>String(x.character.name).trim().toLowerCase()===String(name||"").trim().toLowerCase());
+/** Las fotos de otro proyecto se copian a este, para que no dependa de aquel. */
+async function importPastImages(ids){let changed=false;for(const id of ids){const c=state.chars[id];if(!c||!String(c.image||"").startsWith("/projects/"))continue;try{const j=await postJSON("/projects/copy-asset",{projectSlug:state.projectSlug,url:c.image});if(j.url!==c.image){c.image=j.url;changed=true}}catch(e){console.warn(e)}}if(changed){renderAt(currentTime);scheduleSave()}}
+
 /* ───────── Voces guardadas ───────── */
 const voiceFind=name=>(state.voices||[]).find(v=>String(v.name).trim().toLowerCase()===String(name||"").trim().toLowerCase());
 async function loadVoices(){try{const j=await (await fetch("/voices")).json();state.voices=j.voices||[]}catch(_){state.voices=[]}renderVoiceSelect();syncEventVoiceOptions()}
@@ -316,19 +322,23 @@ $("voiceDelete").onclick=async()=>{const name=$("voiceSelect").value;if(!name||!
 /* ───────── Personajes desde el guion ───────── */
 const NOT_A_CHARACTER=/^(t[ií]tulo inicial|t[ií]tulo|evento|nota|notas|https?|www)$/i;
 const isCreatableName=name=>!NOT_A_CHARACTER.test(name)&&!/[\/\\{}\[\]<>]/.test(name);
-/** Crea los personajes que aparecen en el guion y no existen. Si están en la biblioteca, con su foto y voz;
- *  si hay una voz guardada con su mismo nombre, se le asigna. Al pegar, quita los personajes vacíos que el guion no usa. */
+/** Crea los personajes que aparecen en el guion y no existen. Si están en la biblioteca o en un proyecto
+ *  anterior con voz, se copian tal cual (la biblioteca manda si también tiene voz); si no, y hay una voz
+ *  guardada con su mismo nombre, se le asigna. Al pegar, quita los personajes vacíos que el guion no usa. */
 function createCharactersFromScript(fromPaste){
   const script=$("script").value,parsed=C.parseScript(script,Object.values(state.chars));
-  const created=[],ids=[];
+  const created=[],ids=[],pastIds=[];
   for(const name of parsed.unknownNames){
     if(!isCreatableName(name))continue;
-    const lc=libFind(name);let id;
+    let lc=libFind(name),pc=pastFind(name),id;
+    if(lc&&!lc.ai33Voice&&pc)lc=null;else if(lc)pc=null;
     if(lc)id=addCharacter(libToChar(lc));
+    else if(pc){id=addCharacter(JSON.parse(JSON.stringify(pc.character)));pastIds.push(id)}
     else{const n=Object.keys(state.chars).length,side=n%2?"right":"left";id=addCharacter({name,side,...C.theme({theme:state.theme})[side]})}
     const c=state.chars[id],v=voiceFind(name);if(!c.ai33Voice&&v){c.ai33Voice=v.voice_id;c.ai33Speed=Number(v.speed)||1}
-    ids.push(id);created.push(name+(lc?" (biblioteca)":c.ai33Voice?" (voz guardada)":""));
+    ids.push(id);created.push(name+(lc?" (biblioteca)":pc?` (de «${pc.projectName}»)`:c.ai33Voice?" (voz guardada)":""));
   }
+  if(pastIds.length)importPastImages(pastIds);
   if(!created.length)return;
   const removed=[];
   if(fromPaste){const used=new Set(C.parseScript(script,Object.values(state.chars)).messages.map(m=>m.char));
@@ -640,7 +650,7 @@ async function initProjectManager(){
     fitPreviewCanvas();
     if(!Array.isArray(rp.chars)||!rp.chars.length)loadDemo();
     applyProjectData(rp);
-    state.loaded=true;$("saveStatus").textContent="✓ Proyecto cargado";checkExistingVideo();
+    state.loaded=true;$("saveStatus").textContent="✓ Proyecto cargado";checkExistingVideo();loadPastChars();
     migrateEmbeddedAssets();
   }else await loadProjects();
 }

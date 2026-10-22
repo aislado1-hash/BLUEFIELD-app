@@ -51,6 +51,31 @@ def project_dir(slug):
     return d
 
 
+def project_characters(exclude=""):
+    """Personajes con voz guardados en otros proyectos: el más reciente de cada nombre."""
+    found = {}
+    dirs = sorted([x for x in PROJECTS_ROOT.iterdir() if x.is_dir() and x.name != exclude], key=lambda x: x.stat().st_mtime, reverse=True)
+    for d in dirs:
+        try: data = json.loads((d / "project.json").read_text(encoding="utf-8"))
+        except Exception: continue
+        for c in data.get("chars") or []:
+            name = str((c or {}).get("name") or "").strip()
+            if not name or not str(c.get("ai33Voice") or "").strip() or name.lower() in found: continue
+            found[name.lower()] = {"projectSlug": d.name, "projectName": data.get("projectName") or d.name, "character": c}
+    return list(found.values())
+
+
+def copy_project_asset(slug, url):
+    """Copia al proyecto actual un archivo de assets de otro proyecto (para no depender de él). Devuelve la nueva ruta."""
+    m = re.fullmatch(r"/projects/([a-zA-Z0-9_-]+)/assets/([A-Za-z0-9_.-]+)", str(url or ""))
+    if not m or m.group(1) == slug or m.group(2).startswith("."): return url
+    src = PROJECTS_ROOT / m.group(1) / "assets" / m.group(2)
+    if not src.is_file(): return url
+    dst = project_dir(slug) / "assets" / m.group(2)
+    if not dst.exists(): shutil.copyfile(src, dst)
+    return f"/projects/{slug}/assets/{m.group(2)}"
+
+
 def sanitize_filename(name):
     text = re.sub(r'[<>:"/\\|?*]', '_', str(name or 'video')).strip().rstrip('.')
     return text or 'video'
@@ -671,6 +696,8 @@ class Handler(BaseHTTPRequestHandler):
                 except Exception: data = {}
                 items.append({"projectSlug": d.name, "projectName": data.get("projectName") or d.name, "updatedAt": data.get("updatedAt", "")})
             self.send_json(200, {"ok": True, "projects": items}); return
+        if path == "/projects/characters":
+            self.send_json(200, {"ok": True, "characters": project_characters(qs.get("exclude", [""])[0])}); return
         parts = path.strip("/").split("/")
         if len(parts) == 3 and parts[0] == "projects" and parts[2] == "video":
             try:
@@ -747,6 +774,9 @@ class Handler(BaseHTTPRequestHandler):
                 if kind in ("background", "char") and not data.startswith("data:image/"): raise RuntimeError("La imagen no es válida.")
                 if kind in ("sound", "music") and not data.startswith("data:audio/"): raise RuntimeError("El audio no es válido.")
                 self.send_json(200, {"ok": True, "url": store_data_url(slug, data, kind)}); return
+            if self.path == "/projects/copy-asset":
+                slug = str(payload.get("projectSlug") or "").strip()
+                self.send_json(200, {"ok": True, "url": copy_project_asset(slug, payload.get("url"))}); return
             if self.path == "/projects/save":
                 d, _ = save_project_json(payload)
                 self.send_json(200, {"ok": True, "path": str(d)}); return

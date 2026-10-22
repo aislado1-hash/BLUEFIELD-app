@@ -23,6 +23,7 @@ evento: María cambió el título del grupo a Viaje a Madrid
 ```
 
 - `Titulo inicial:` se muestra centrado al principio, con su propio audio; el chat empieza 2 s después.
+- **Personajes de proyectos anteriores:** al detectar un personaje nuevo en el guion, si ya lo usaste con voz en otro proyecto (o está en la biblioteca), se copia tal cual estaba: voz, velocidad, foto, colores, lado y tamaños. Se toma el del proyecto más reciente; la biblioteca manda si también tiene voz. La foto se copia a la carpeta del proyecto nuevo.
 - **Varios títulos:** `Titulo inicial 2:`, `Titulo inicial 3:`… se pueden poner en cualquier punto del guion. Cada uno aparece en pantalla completa justo donde está escrito, con su propio audio, y 2 s después el chat sigue donde estaba. Si repites `Titulo inicial:` sin número, se numeran solos por orden.
 - `Nombre: texto` es un mensaje del personaje con ese nombre.
 - `evento:` es un aviso del sistema `[ … ]` con su propio audio.
