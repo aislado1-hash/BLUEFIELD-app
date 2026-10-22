@@ -1,0 +1,15 @@
+{
+  "name": "chat-video-maker-remotion",
+  "version": "36.0.0",
+  "private": true,
+  "scripts": {
+    "render": "remotion render remotion/index.tsx ChatVideo"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.534",
+    "@remotion/media": "4.0.534",
+    "remotion": "4.0.534",
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
+  }
+}

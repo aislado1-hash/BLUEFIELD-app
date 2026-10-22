@@ -1,0 +1,644 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Chat Video Maker — LOCAL v36</title>
+
+<style>
+:root{
+  --bg:#0b0d12;--panel:#12161f;--panel2:#171c27;--line:#252c39;
+  --text:#f5f7fb;--muted:#8e99aa;--accent:#6ee7a0;--accent2:#42d982;
+  --input:#0e1219;--shadow:0 24px 70px rgba(0,0,0,.30);
+}
+*{box-sizing:border-box}
+html,body{min-height:100%;background:
+ radial-gradient(circle at 15% 0%,rgba(110,231,160,.07),transparent 30%),
+ radial-gradient(circle at 90% 10%,rgba(83,118,255,.08),transparent 28%),
+ var(--bg)}
+body{margin:0;color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+button,input,textarea,select{font:inherit}
+.app{max-width:1480px;margin:auto;padding:28px}
+.top{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px}
+.brand{display:flex;align-items:center;gap:12px}
+.logo{width:42px;height:42px;border-radius:13px;display:grid;place-items:center;
+ background:linear-gradient(135deg,#72f2a5,#3bcf7d);color:#06140c;font-weight:950;
+ box-shadow:0 12px 30px rgba(66,217,130,.2)}
+.brandTitle{font-size:18px;font-weight:900;letter-spacing:-.02em}
+.badge{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#9beeb9;
+ border:1px solid rgba(110,231,160,.2);background:rgba(110,231,160,.07);
+ padding:5px 8px;border-radius:999px;margin-left:7px}
+.topStatus{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:12px}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--accent);box-shadow:0 0 14px rgba(110,231,160,.8)}
+.layout{display:grid;grid-template-columns:400px minmax(0,1fr);gap:20px}
+.panel{background:linear-gradient(180deg,rgba(23,28,39,.96),rgba(16,20,29,.96));
+ border:1px solid var(--line);border-radius:22px;box-shadow:var(--shadow);padding:20px}
+.panel h2{font-size:13px;text-transform:uppercase;letter-spacing:.09em;color:#b8c1cf;margin:0 0 12px}
+.panel h2:not(:first-child){margin-top:22px}
+.field{margin-bottom:11px}.field label{display:block;font-size:11px;color:var(--muted);margin:0 0 6px;font-weight:700}
+input[type=text],input[type=number],input:not([type]),textarea,select{
+ width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:11px;
+ background:var(--input);color:var(--text);outline:none;transition:.18s
+}
+input[type=text]:focus,input[type=number]:focus,input:not([type]):focus,textarea:focus,select:focus{
+ border-color:rgba(110,231,160,.6);box-shadow:0 0 0 3px rgba(110,231,160,.08)}
+textarea{min-height:165px;resize:vertical;line-height:1.5}
+input[type=range]{width:100%;accent-color:var(--accent)}
+input[type=color]{width:100%;height:40px;padding:4px;background:var(--input);border:1px solid var(--line);border-radius:10px}
+.row{display:flex;gap:9px}.row>*{flex:1;min-width:0}
+.btn{border:1px solid var(--line);background:#151a23;color:#e7ebf1;padding:10px 13px;border-radius:11px;
+ cursor:pointer;transition:.18s;box-shadow:0 5px 15px rgba(0,0,0,.12);font-weight:750}
+.btn:hover{transform:translateY(-1px);background:#1b222e;border-color:#343e4e}
+.btn:active{transform:translateY(0)}
+.primary{background:linear-gradient(135deg,#78f1aa,#45d982)!important;color:#06140c!important;border:0!important}
+.file{display:none}.small,.status,.hint{font-size:11px;color:var(--muted);line-height:1.5}
+.chars{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:10px}
+.char{border:1px solid var(--line);background:#0f141c;border-radius:999px;padding:8px 11px;cursor:pointer;
+ color:#b9c2cf;font-size:12px;font-weight:750;transition:.18s}
+.char:hover{border-color:#3b4657}.char.active{border-color:rgba(110,231,160,.65);background:rgba(110,231,160,.09);color:#aaf2c2}
+.soundBox{margin:14px 0;padding:13px;border:1px solid rgba(110,231,160,.2);border-radius:15px;background:rgba(110,231,160,.045)}
+.previewPanel{min-height:860px;display:flex;flex-direction:column;padding:14px}
+.previewHead{display:flex;justify-content:space-between;align-items:center;padding:2px 2px 14px}
+.previewHead h2{margin:0;text-transform:none;letter-spacing:-.02em;font-size:18px;color:var(--text)}
+.controls{display:flex;gap:7px}
+.previewWrap{flex:1;display:grid;place-items:center;background:
+ radial-gradient(circle at 50% 40%,rgba(255,255,255,.04),transparent 45%),#090b10;
+ border:1px solid #202633;border-radius:17px;overflow:hidden;padding:10px}
+.stage{width:100%;max-width:1920px;aspect-ratio:16/9;background:#11131a;position:relative;overflow:hidden;
+ border-radius:12px;box-shadow:0 25px 60px rgba(0,0,0,.42);outline:1px solid rgba(255,255,255,.06);contain:layout paint;backface-visibility:hidden;-webkit-font-smoothing:antialiased;text-rendering:geometricPrecision}
+.previewCanvas{position:absolute;left:0;top:0;width:1920px;height:1080px;transform-origin:top left;overflow:hidden;background:#11131a}
+.timelineMeta{font-size:11px;color:#8f9bab;text-align:right;margin-bottom:5px}.timeline{margin-top:11px;border:1px solid var(--line);border-radius:13px;padding:8px;max-height:175px;overflow:auto;background:#0e1219}
+.trow{display:flex;align-items:center;gap:9px;padding:7px 8px;border-radius:9px;color:#aab4c2;font-size:11px}
+.trow.on{background:rgba(110,231,160,.08);color:#dcefe4}
+.tbadge{color:#687486;min-width:42px}.bar{height:5px;background:#252c39;border-radius:5px;flex:1}.bar>i{display:block;height:100%;background:var(--accent);border-radius:5px}
+.aiBox{margin-top:9px;padding:13px;border-radius:14px;border:1px solid #293140;background:#10151e}
+.aiTitle{font-size:12px;font-weight:850;color:#dce3ec;margin-bottom:5px}
+@media(max-width:1050px){.layout{grid-template-columns:1fr}.previewPanel{min-height:650px}}
+@media(max-width:650px){.app{padding:14px}.row{flex-direction:column}.previewWrap{padding:8px}}
+
+.sectionDetails{border:1px solid #2a3240;border-radius:14px;background:rgba(15,19,27,.55);margin-bottom:10px;overflow:hidden}
+.sectionDetails>summary{list-style:none;cursor:pointer;padding:13px 15px;font-size:15px;font-weight:850;color:#eef3f8;display:flex;align-items:center;justify-content:space-between;user-select:none;background:linear-gradient(180deg,rgba(255,255,255,.025),rgba(255,255,255,.01))}
+.sectionDetails>summary::-webkit-details-marker{display:none}
+.sectionDetails>summary:after{content:'▸';font-size:14px;color:#8f9aaa;transition:transform .15s ease}
+.sectionDetails[open]>summary:after{transform:rotate(90deg)}
+.sectionBody{padding:0 12px 12px}
+.sectionBody>h2{display:none}
+.sectionDetails .hint{margin-top:2px}
+.eventCard{border:1px solid var(--line);background:#0f141c;border-radius:12px;padding:10px;margin-top:9px}.eventCard .row{margin-top:7px}.eventCard .eventRemove{white-space:nowrap}.timeline .systemRow{justify-content:center}.timeline .systemRow b{color:#aeb8c7}.timeline .systemRow .tbadge{background:#252b36}.trow .noVoice{color:#ffcf70;white-space:nowrap}
+.stage.vertical{width:auto;height:min(76vh,1000px);aspect-ratio:9/16;max-width:100%}
+.seekRow{display:flex;align-items:center;gap:10px;margin-top:10px;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}.seekRow input{flex:1}
+.trow{cursor:pointer}.trow:hover{background:rgba(255,255,255,.04)}
+.libBox{margin:10px 0 12px;padding:12px;border-radius:14px;border:1px solid #293140;background:#10151e}
+.warn{color:#ffcf70}
+.timelineDetails{margin-top:10px}
+.mini{cursor:grab;user-select:none;touch-action:none;-webkit-user-drag:none}.mini:active{cursor:grabbing}
+.autoNotice{position:fixed;right:22px;bottom:22px;z-index:10000;width:min(380px,calc(100vw - 32px));background:#12161f;border:1px solid var(--accent);border-radius:16px;padding:16px 18px;box-shadow:0 20px 60px rgba(0,0,0,.55);display:none}.autoNotice.on{display:block;animation:autoIn .25s ease-out}.autoNotice b{display:block;font-size:15px;margin-bottom:4px}.autoNotice .small{margin-bottom:10px}.autoNotice .row{margin-top:10px}@keyframes autoIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+.progress{height:9px;background:#252c39;border-radius:9px;overflow:hidden;margin-top:6px}.progress>i{display:block;width:0%;height:100%;background:var(--accent);transition:width .2s}
+.check{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--muted);margin:-3px 0 10px}.check input{width:auto}
+.timelineDetails>summary{font-size:12px;padding:9px 11px}
+.projectHome{position:fixed;inset:0;z-index:9999;background:#0b0d12;display:flex;align-items:center;justify-content:center;padding:30px}.projectHome.hidden{display:none}.projectBox{width:min(1100px,100%);max-height:90vh;overflow:auto;background:#12161f;border:1px solid #252c39;border-radius:24px;padding:28px;box-shadow:0 30px 100px rgba(0,0,0,.45)}.projectTitle{font-size:28px;font-weight:950}.projectSub{color:#8e99aa;font-size:13px;margin:6px 0 24px}.projectCreate{display:flex;gap:10px;max-width:620px}.projectCreate input{flex:1}.projectGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px;margin-top:12px}.projectCard{background:#10151e;border:1px solid #293140;border-radius:16px;padding:16px}.projectCard b{display:block;margin-bottom:7px}.projectCard .small{margin-bottom:12px}.projectEmpty{padding:28px;border:1px dashed #303847;border-radius:15px;color:#8e99aa;text-align:center;grid-column:1/-1}@media(max-width:650px){.projectHome{padding:14px}.projectBox{padding:18px}.projectCreate{flex-direction:column}}
+</style>
+</head>
+<body><div id="projectHome" class="projectHome"><div class="projectBox"><div class="projectTitle">Chat Video Maker</div><div class="projectSub">Selecciona un proyecto o crea uno nuevo. Cada proyecto tendrá sus propios audios, configuración y vídeo.</div><div class="projectCreate"><input id="newProjectName" type="text" placeholder="Nombre del nuevo proyecto"><button id="createProject" class="btn primary">＋ Crear proyecto</button></div><div style="height:22px"></div><div style="font-size:16px;font-weight:900">Proyectos actuales</div><div id="projectList" class="projectGrid"><div class="projectEmpty">Cargando proyectos…</div></div></div></div><div class="app" id="editorApp" style="display:none">
+<div class="top">
+  <div class="brand">
+    <div class="logo">✦</div>
+    <div><div class="brandTitle">Chat Video Maker <span class="badge">Local v36</span></div>
+    <div class="small">Diseña la conversación. Renderiza el vídeo en tu ordenador con Remotion.</div></div>
+  </div>
+  <div class="topStatus"><span class="dot"></span> <span id="saveStatus">Render local · Remotion</span></div>
+</div>
+<div class="layout"><section class="panel">
+<details class="sectionDetails" open>
+<summary>00 · Estilo y cabecera</summary>
+<div class="sectionBody">
+<div class="row"><div class="field"><label>Plantilla de estilo</label><select id="themeSelect"></select></div><div class="field" style="flex:0 0 auto;align-self:flex-end"><button class="btn" id="themeApply">🎨 Aplicar a personajes y fondo</button></div></div>
+<div class="hint" style="margin:-4px 0 10px">La plantilla cambia cabecera, avisos, forma de las burbujas y tipografía. «Aplicar» además recolorea las burbujas (según el lado) y el fondo; luego puedes retocarlos a mano.</div>
+<div class="row">
+  <div class="field"><label>Nombre del grupo</label><input id="groupName" type="text" value="Chat de grupo"></div>
+  <div class="field"><label>Miembros</label><input id="groupMembers" type="number" value="24" min="0" step="1"></div>
+  <div class="field"><label>Tamaño de la cabecera (px)</label><input id="headerSize" type="number" value="108" min="70" max="220" step="1"></div>
+</div>
+<div class="hint">Los eventos del guion como «Juan sacó a Pepe del grupo», «Luis se unió al grupo» o «María cambió el título del grupo a …» actualizan la cabecera automáticamente.</div>
+</div></details>
+
+<details class="sectionDetails" open>
+<summary>01 · Personajes</summary>
+<div class="sectionBody">
+<div class="chars" id="chars"></div>
+<div class="small" id="charsStatus"></div>
+<div class="row" style="margin-top:8px"><button class="btn" id="addChar">+ Personaje</button><label class="btn">🖼️ Imagen<input class="file" id="imgFile" type="file" accept="image/*"></label><button class="btn" id="removeChar">🗑 Quitar</button></div>
+<div class="libBox">
+  <div class="aiTitle">📚 Biblioteca de personajes</div>
+  <div class="row"><div class="field" style="margin:0"><select id="libSelect"><option value="">Cargando…</option></select></div><button class="btn" id="libAdd" style="flex:0 0 auto">＋ Usar</button><button class="btn" id="libDelete" style="flex:0 0 auto" title="Borrar de la biblioteca">✕</button></div>
+  <div class="row" style="margin-top:8px"><button class="btn" id="libSave">💾 Guardar el personaje seleccionado en la biblioteca</button></div>
+  <div class="small" id="libStatus">Guarda un personaje (foto, colores, voz) una vez y reutilízalo en cualquier proyecto.</div>
+</div>
+<div class="field"><label>Nombre</label><input id="charName"></div>
+<div class="libBox">
+  <div class="aiTitle">🗣️ Voz del personaje</div>
+  <div class="row"><div class="field" style="margin:0"><select id="voiceSelect"><option value="">Elegir una voz guardada…</option></select></div><button class="btn" id="voiceDelete" style="flex:0 0 auto" title="Borrar la voz de la lista">✕</button></div>
+  <div class="row" style="margin-top:8px"><div class="field"><label>AI33 Voice ID</label><input id="ai33Voice" placeholder="elevenlabs_..."></div><div class="field" style="flex:0 0 110px"><label>Velocidad</label><input id="ai33Speed" type="number" value="1" min="0.25" max="4" step="0.05"></div></div>
+  <div class="row" style="margin-top:-3px"><div class="field" style="margin:0"><input id="voiceName" placeholder="Nombre de la voz" title="Ej.: Chico joven. Si lo dejas vacío, se usa el nombre del personaje."></div><button class="btn" id="voiceSave" style="flex:0 0 auto">💾 Guardar voz</button></div>
+  <div class="small" id="voiceStatus">Guarda una voz una vez y elígela después en cualquier personaje y proyecto.</div>
+</div>
+<div class="row"><div class="field"><label title="Solo se usa con «Lado de las burbujas: Fijo»">Lado (modo fijo)</label><select id="charSide"><option value="left">Izquierda</option><option value="right">Derecha</option></select></div><div class="field"><label>Burbuja</label><input id="charColor" type="color"></div></div>
+<div class="row"><div class="field"><label>Texto</label><input id="charTextColor" type="color"></div><div class="field"><label>Trazo</label><input id="charStrokeColor" type="color"></div></div>
+<div class="row"><div class="field"><label>Tamaño personaje</label><input id="charSize" type="range" min="50" max="500" step="5"></div><div class="field"><label>Foto X</label><input id="photoX" type="range" min="-900" max="900" step="5"></div></div>
+<div class="row"><div class="field"><label>Burbuja X</label><input id="bubbleX" type="range" min="-1200" max="1200" step="5"></div><div class="field"><label>Foto Y</label><input id="photoY" type="range" min="-500" max="500" step="5"></div></div>
+<div class="row"><div class="field"><label>Tamaño burbuja <span id="bubbleSizeLabel">100%</span></label><input id="bubbleSize" type="range" min="60" max="300" step="1" value="100"></div><div class="field"><label>Tamaño nombre <span id="nameSizeLabel">30 px</span></label><input id="nameSize" type="range" min="14" max="72" step="1" value="30"></div></div>
+</div></details>
+
+<details class="sectionDetails">
+<summary>02 · Conversación</summary>
+<div class="sectionBody">
+<div class="hint">Una línea por mensaje: <b>Nombre: texto</b>. Extras: <b>Titulo inicial: "…"</b> al principio · <b>evento: Juan sacó a Pepe del grupo</b> · reacciones al final de un mensaje: <b>Pepe: Golazo {r: 😂3 🔥 💀}</b> (el número es cuántas personas reaccionan).</div>
+<div class="row"><div class="field"><label>Tipografía del título inicial</label><select id="initialTitleFont"><option value="Arial">Arial</option><option value="Georgia">Georgia</option><option value="Verdana">Verdana</option><option value="Trebuchet MS">Trebuchet MS</option><option value="Courier New">Courier New</option><option value="Impact">Impact</option></select></div><div class="field"><label>Tamaño del título</label><input id="initialTitleSize" type="number" min="20" max="180" step="1" value="72"></div></div>
+<div class="row"><div class="field"><label>Color del título</label><input id="initialTitleColor" type="color" value="#ffffff"></div><div class="field"><label>Color del trazo</label><input id="initialTitleStrokeColor" type="color" value="#000000"></div><div class="field"><label>Tamaño de trazo</label><input id="initialTitleStroke" type="number" min="0" max="20" step="0.5" value="0"></div></div>
+<textarea id="script"></textarea>
+<div class="small" id="scriptWarn"></div>
+<div class="row"><div class="field"><label>Espera antes</label><input id="delay" type="number" value=".3" step=".1"></div><div class="field"><label>Escribiendo</label><input id="typing" type="number" value=".5" step=".1"></div><div class="field"><label>Visible</label><input id="duration" type="number" value="2.2" step=".1"></div></div>
+<div class="row"><div class="field"><label>Lado de las burbujas</label><select id="sideMode"><option value="alternate">Alternar al cambiar de personaje</option><option value="fixed">Fijo: el lado de cada personaje</option></select></div></div>
+<div class="row"><div class="field"><label>Animación</label><select id="anim"><option>Pop</option><option>Deslizar</option><option>Aparecer</option></select></div><div class="field"><label>FPS exportación</label><select id="fps"><option>30</option><option>60</option></select></div></div>
+<div class="row"><div class="field"><label>Color de fondo</label><input id="bg" type="color" value="#11131a"></div><div class="field"><label>Ajuste de foto</label><select id="bgFit"><option value="cover">Cubrir · llena toda la pantalla</option><option value="contain">Encajar · muestra toda la foto</option></select></div></div>
+<div class="row"><label class="btn">🖼️ Foto de fondo<input class="file" id="bgFile" type="file" accept="image/*"></label><button class="btn" id="bgRemove" disabled>✕ Quitar foto de fondo</button></div>
+<div class="small" id="bgStatus">Sin foto de fondo. Puedes usar solo un color o añadir una imagen.</div>
+<div class="row" style="margin-top:8px"><label class="btn">🔊 Sonido de mensaje<input class="file" id="soundFile" type="file" accept="audio/*"></label><button class="btn" id="soundRemove" disabled>✕ Quitar sonido</button></div>
+<div class="small" id="soundStatus">Sin sonido cargado.</div>
+<div class="soundBox">
+  <div class="aiTitle">🎵 Música de fondo</div>
+  <div class="row"><label class="btn">🎵 Elegir música<input class="file" id="musicFile" type="file" accept="audio/*"></label><button class="btn" id="musicRemove" disabled>✕ Quitar música</button></div>
+  <div class="row" style="margin-top:8px"><div class="field"><label title="Volumen normal de la música">Volumen <span id="musicVolumeLabel">25%</span></label><input id="musicVolume" type="range" min="0" max="100" step="1" value="25"></div><div class="field"><label title="Volumen de la música mientras habla una voz (ducking)">Al hablar <span id="musicDuckLabel">8%</span></label><input id="musicDuck" type="range" min="0" max="100" step="1" value="8"></div></div>
+  <div class="small" id="musicStatus">Sin música. Suena en bucle todo el vídeo y baja sola mientras hablan las voces.</div>
+</div>
+<div class="row" style="margin-top:8px"><button class="btn" id="loadDemo">Cargar ejemplo</button></div>
+</div></details>
+
+<details class="sectionDetails">
+<summary>03 · Eventos del grupo</summary>
+<div class="sectionBody">
+<div class="hint">Añade cambios que ocurren dentro del chat: alguien sale, alguien añade a otra persona o cambia el título. Se muestran como avisos del sistema y también actualizan la cabecera durante el vídeo.</div>
+<div class="row">
+  <div class="field"><label>Tipo</label><select id="eventType"><option value="leave">Alguien sale del grupo</option><option value="add">Añadir a alguien</option><option value="title">Cambiar título del grupo</option></select></div>
+  <div class="field"><label>Después de mensaje</label><input id="eventAfter" type="number" min="0" step="1" value="1"></div>
+</div>
+<div class="row">
+  <div class="field"><label id="eventActorLabel">Persona que sale</label><input id="eventActor" placeholder="Nombre"></div>
+  <div class="field"><label id="eventValueLabel">—</label><input id="eventValue" placeholder="Quién la saca (opcional)" disabled></div>
+</div>
+<div class="row"><div class="field"><label>Voz AI33 del evento</label><select id="eventVoice"><option value="">Automática según la persona</option></select></div><div class="field"><label>Tamaño del texto del evento (px)</label><input id="eventSize" type="number" min="14" max="96" step="1" value="28"></div></div>
+<div class="row"><button class="btn primary" id="addGroupEvent">+ Añadir evento</button><button class="btn" id="clearGroupEvents">✕ Quitar todos</button><button class="btn" id="generateEventAudio">🗣️ Generar audios de eventos + título inicial</button></div>
+<div class="small" id="eventAudioStatus">Los eventos y el título inicial generan su audio AI33 de forma secuencial. El título inicial espera 2 segundos después de terminar antes de comenzar el chat.</div>
+<div id="groupEventsList"></div>
+</div></details>
+
+<details class="sectionDetails">
+<summary>04 · Voces AI33 · Text to Speech</summary>
+<div class="sectionBody">
+<div class="hint">AI33 Text to Speech genera <b>un audio independiente por mensaje</b>. El programa espera a que AI33 termine, descarga el archivo, lo verifica y solo entonces solicita el siguiente mensaje.</div>
+<div class="row"><div class="field"><label>API Key AI33</label><input id="ai33Key" type="password" placeholder="xi-api-key" autocomplete="off"></div><div class="field"><label>Endpoint</label><input value="Text to Speech v3" disabled></div></div>
+<label class="check"><input type="checkbox" id="ai33Remember"> Recordar la API key en este navegador (no se guarda en los proyectos)</label>
+<div class="row"><button class="btn" id="ai33Generate">🗣️ Generar voces, una por una</button><button class="btn" id="ai33Clear">✕ Quitar voces AI33</button><button class="btn" id="ai33Folder">📁 Abrir carpeta de audios</button></div>
+<div class="small" id="ai33Status">Sin audios de AI33 generados.</div>
+<div id="ai33ProgressWrap" style="display:none;margin-top:10px">
+  <div style="display:flex;justify-content:space-between;gap:10px;font-size:12px;color:#aab4c2"><span id="ai33ProgressText">Preparando…</span><b id="ai33ProgressPct">0%</b></div>
+  <div class="progress"><i id="ai33ProgressBar"></i></div>
+</div>
+</div></details>
+
+<details class="sectionDetails" open>
+<summary>05 · Exportar vídeo</summary>
+<div class="sectionBody">
+<div class="row"><div class="field"><label>Formato</label><select id="resolution">
+  <option value="1920x1080" selected>Horizontal 16:9 · 1920 × 1080 (YouTube)</option>
+  <option value="1280x720">Horizontal 16:9 · 1280 × 720</option>
+  <option value="1080x1920">Vertical 9:16 · 1080 × 1920 (TikTok, Reels, Shorts)</option>
+  <option value="720x1280">Vertical 9:16 · 720 × 1280</option>
+</select></div><div class="field" style="flex:0 0 170px"><label>Velocidad de render</label><select id="renderSpeed"><option value="rapido">Rápido</option><option value="equilibrado">Equilibrado</option><option value="calidad">Máxima calidad</option></select></div></div>
+<div class="hint" style="margin:-4px 0 10px">En vertical se dejan márgenes arriba y abajo para que la interfaz de TikTok/Reels no tape el chat.</div>
+<div class="row"><button class="btn primary" id="render">🎬 Generar MP4</button></div>
+<label class="check"><input type="checkbox" id="autoRender" checked> Al terminar de generar los audios, avisar y generar el MP4 automáticamente en 10 s</label>
+<div class="status" id="status">Listo.</div><div id="renderProgressWrap" style="display:none;margin-top:8px"><div style="display:flex;justify-content:space-between;gap:10px;font-size:12px;color:#aab4c2"><span id="renderProgressText">Preparando…</span><b id="renderProgressPct">0%</b></div><div class="progress"><i id="renderProgressBar"></i></div></div><div id="download"></div>
+</div></details>
+</section>
+<section class="panel previewPanel">
+<div class="previewHead"><h2>Vista previa <span class="badge" id="resolutionBadge">Full HD · 1920×1080</span></h2><div class="controls"><button class="btn" id="play">▶ Reproducir</button><button class="btn" id="stop">■ Parar</button><button class="btn" id="resetPreview">↺ Reiniciar</button></div></div>
+<div class="previewWrap"><div class="stage" id="stage"><div class="previewCanvas" id="previewCanvas"></div></div></div>
+<div class="seekRow"><span id="seekTime">0.0 s</span><input type="range" id="seek" min="0" max="1000" step="10" value="0"><span id="seekTotal">0.0 s</span></div>
+<div class="small" style="margin-top:4px">Arrastra la barra o haz clic en una fila de la línea de tiempo para saltar a ese momento. Arrastra un personaje para moverlo.</div>
+<details class="sectionDetails timelineDetails" open><summary>Línea de tiempo</summary><div class="sectionBody"><div class="timelineMeta" id="timelineMeta">0,0 s</div><div class="timeline" id="timeline"></div></div></details>
+</section></div></div>
+<div class="autoNotice" id="autoNotice" role="alertdialog" aria-live="assertive"><b>✓ Audios generados</b><div class="small" id="autoNoticeText">El MP4 se generará automáticamente.</div><div class="progress"><i id="autoNoticeBar"></i></div><div class="row"><button class="btn" id="autoNoticeCancel">✕ Apagar aviso</button><button class="btn primary" id="autoNoticeNow">🎬 Generar ya</button></div></div>
+<script src="/shared/chatcore.js"></script>
+<script>
+"use strict";
+const $=id=>document.getElementById(id);
+const C=window.ChatCore;
+const state={projectSlug:"",projectName:"",loaded:false,groupName:"Chat de grupo",groupMembers:24,headerSize:108,initialTitle:"",initialTitleAudio:null,initialTitleAudioCacheKey:"",initialTitleDuration:0,initialTitleFont:"Arial",initialTitleSize:72,initialTitleColor:"#ffffff",initialTitleStrokeColor:"#000000",initialTitleStroke:0,eventSize:28,theme:"clasico",library:[],voices:[],music:null,musicName:"",musicVolume:25,musicDuck:8,musicEl:null,groupEvents:[],chars:{},selected:null,bgColor:"#11131a",bgImage:null,bgFit:"cover",sound:null,dialogueMessages:[],playing:false,raf:0,audioCtx:null,audioBuffer:null,audioSources:[],players:[],lastProject:null};
+const demo={a:{name:"Real Madrid",side:"right",color:"#39c96b",textColor:"#fff",strokeColor:"#000",stroke:2,size:150,photoX:0,photoY:0,bubbleX:0,bubbleSize:100,nameSize:30,image:""},
+b:{name:"Barcelona",side:"left",color:"#ff5d83",textColor:"#fff",strokeColor:"#000",stroke:2,size:150,photoX:0,photoY:0,bubbleX:0,bubbleSize:100,nameSize:30,image:""}};
+function escapeHtml(v){return String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]))}
+async function postJSON(url,body){const r=await fetch(url,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body||{})});let j;try{j=await r.json()}catch(_){throw Error("Respuesta no válida del servidor ("+r.status+")")}if(!j.ok)throw Error(j.error||"Error");return j}
+function readFileAsDataURL(file){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(String(r.result||""));r.onerror=()=>rej(r.error);r.readAsDataURL(file)})}
+async function uploadAsset(kind,dataUrl){if(!state.projectSlug)return dataUrl;const j=await postJSON("/projects/upload-asset",{projectSlug:state.projectSlug,kind,data:dataUrl});return j.url}
+
+/* ───────── Guardado automático ───────── */
+let saveTimer=0;
+function scheduleSave(){if(!state.loaded||!state.projectSlug)return;clearTimeout(saveTimer);$("saveStatus").textContent="Cambios sin guardar…";saveTimer=setTimeout(saveNow,1200)}
+async function saveNow(){clearTimeout(saveTimer);if(!state.projectSlug)return;try{await postJSON("/projects/save",project());$("saveStatus").textContent="✓ Guardado "+new Date().toLocaleTimeString()}catch(e){$("saveStatus").textContent="⚠ No se pudo guardar: "+e.message}}
+window.addEventListener("beforeunload",()=>{if(saveTimer&&state.projectSlug){try{navigator.sendBeacon("/projects/save",new Blob([JSON.stringify(project())],{type:"application/json"}))}catch(_){}}});
+
+/* ───────── Cabecera, fondo y título ───────── */
+function syncChatHeader(){
+  state.headerSize=Math.max(70,Math.min(220,Number(state.headerSize)||108));
+  const gn=$("groupName"),gm=$("groupMembers"),hi=$("headerSize"),es=$("eventSize");
+  if(gn&&gn.value!==state.groupName)gn.value=state.groupName;
+  if(gm&&String(gm.value)!==String(state.groupMembers))gm.value=state.groupMembers;
+  if(hi&&String(hi.value)!==String(state.headerSize))hi.value=state.headerSize;
+  if(es&&String(es.value)!==String(state.eventSize))es.value=state.eventSize;
+}
+function syncBackground(){
+  const st=$("bg");if(st&&st.value!==state.bgColor)st.value=state.bgColor||"#11131a";
+  const fit=$("bgFit");if(fit&&fit.value!==state.bgFit)fit.value=state.bgFit||"cover";
+  $("bgStatus").textContent=state.bgImage?"✓ Foto de fondo cargada. Se adapta al lienzo según el ajuste elegido.":"Sin foto de fondo. Puedes usar solo un color o añadir una imagen.";
+  $("bgRemove").disabled=!state.bgImage;
+}
+$("bgRemove").onclick=()=>{state.bgImage=null;syncBackground();renderAt(currentTime);saveNow();$("status").textContent="Foto de fondo quitada."};
+$("soundRemove").onclick=()=>{state.sound=null;state.audioBuffer=null;syncSoundStatus();scheduleSave()};
+
+/* ───────── Plantillas de estilo ───────── */
+function syncThemeSelect(){const sel=$("themeSelect");if(!sel.options.length){Object.entries(C.THEMES).forEach(([id,t])=>{const o=document.createElement("option");o.value=id;o.textContent=t.label;sel.append(o)})}sel.value=state.theme||"clasico"}
+$("themeSelect").onchange=()=>{state.theme=$("themeSelect").value;renderAt(currentTime)};
+$("themeApply").onclick=()=>{state.theme=$("themeSelect").value;const r=C.applyTheme(state.theme,Object.values(state.chars));state.bgColor=r.bgColor;syncBackground();sync();renderAt(currentTime);$("status").textContent="Plantilla «"+C.THEMES[state.theme].label+"» aplicada."};
+$("groupName").oninput=()=>{state.groupName=$("groupName").value;renderAt(currentTime)};
+$("groupMembers").oninput=()=>{state.groupMembers=Math.max(0,parseInt($("groupMembers").value||"0",10));renderAt(currentTime)};
+$("headerSize").oninput=()=>{state.headerSize=Math.max(70,Math.min(220,parseInt($("headerSize").value||"108",10)));renderAt(currentTime)};
+$("eventSize").oninput=()=>{state.eventSize=Math.max(14,Math.min(96,parseInt($("eventSize").value||"28",10)));renderAt(currentTime)};
+function syncInitialTitleStyle(){state.initialTitleFont=$("initialTitleFont").value;state.initialTitleSize=Math.max(20,+$("initialTitleSize").value||72);state.initialTitleColor=$("initialTitleColor").value;state.initialTitleStrokeColor=$("initialTitleStrokeColor").value;state.initialTitleStroke=Math.max(0,+$("initialTitleStroke").value||0);renderAt(currentTime)}
+["initialTitleFont","initialTitleSize","initialTitleColor","initialTitleStrokeColor","initialTitleStroke"].forEach(id=>$(id).oninput=syncInitialTitleStyle);
+function syncTitleInputs(){$("initialTitleFont").value=state.initialTitleFont;$("initialTitleSize").value=state.initialTitleSize;$("initialTitleColor").value=state.initialTitleColor;$("initialTitleStrokeColor").value=state.initialTitleStrokeColor;$("initialTitleStroke").value=state.initialTitleStroke}
+
+/* ───────── Personajes ───────── */
+function loadDemo(){state.groupEvents=[];state.chars=JSON.parse(JSON.stringify(demo));state.selected="a";$("script").value="Real Madrid: ¿Quién eres?\nBarcelona: Soy tu futuro.\nReal Madrid: ¿Nuestro futuro?\nBarcelona: Exactamente.";sync();drawChars();buildTimeline();renderGroupEvents();renderAt(0)}
+function drawChars(){const e=$("chars");e.innerHTML="";Object.entries(state.chars).forEach(([id,c])=>{const d=document.createElement("div");d.className="char "+(id===state.selected?"active":"");d.textContent=c.name;d.onclick=()=>{state.selected=id;sync();drawChars();renderAt(currentTime)};e.append(d)});syncEventVoiceOptions()}
+const hex6=v=>{const s=String(v||"#000000");return/^#[0-9a-f]{3}$/i.test(s)?"#"+s.slice(1).split("").map(x=>x+x).join(""):s};
+function sync(){const c=state.chars[state.selected];if(!c)return;$("charName").value=c.name;$("charSide").value=c.side;$("charColor").value=hex6(c.color);$("charTextColor").value=hex6(c.textColor);$("charStrokeColor").value=hex6(c.strokeColor);$("charSize").value=c.size||150;$("photoX").value=c.photoX||0;$("photoY").value=c.photoY||0;$("bubbleX").value=c.bubbleX||0;$("bubbleSize").value=c.bubbleSize||100;$("bubbleSizeLabel").textContent=(c.bubbleSize||100)+"%";$("nameSize").value=c.nameSize||30;$("nameSizeLabel").textContent=(c.nameSize||30)+" px";$("ai33Voice").value=c.ai33Voice||"";$("ai33Speed").value=c.ai33Speed||1;syncVoiceSelect()}
+const selChar=()=>state.chars[state.selected];
+["charName","charSide","charColor","charTextColor","charStrokeColor"].forEach(id=>$(id).oninput=()=>{const c=selChar();if(!c)return;c.name=$("charName").value;c.side=$("charSide").value;c.color=$("charColor").value;c.textColor=$("charTextColor").value;c.strokeColor=$("charStrokeColor").value;drawChars();buildTimeline();renderAt(currentTime)});
+$("charSize").oninput=()=>{const c=selChar();if(c){c.size=+$("charSize").value;renderAt(currentTime)}};
+$("photoX").oninput=()=>{const c=selChar();if(c){c.photoX=+$("photoX").value;renderAt(currentTime)}};
+$("photoY").oninput=()=>{const c=selChar();if(c){c.photoY=+$("photoY").value;renderAt(currentTime)}};
+$("bubbleX").oninput=()=>{const c=selChar();if(c){c.bubbleX=+$("bubbleX").value;renderAt(currentTime)}};
+$("bubbleSize").oninput=()=>{const c=selChar();if(!c)return;c.bubbleSize=+$("bubbleSize").value;$("bubbleSizeLabel").textContent=c.bubbleSize+"%";renderAt(currentTime)};
+$("nameSize").oninput=()=>{const c=selChar();if(!c)return;c.nameSize=+$("nameSize").value;$("nameSizeLabel").textContent=c.nameSize+" px";renderAt(currentTime)};
+$("ai33Voice").oninput=()=>{const c=selChar();if(c){c.ai33Voice=$("ai33Voice").value.trim();syncEventVoiceOptions();syncVoiceSelect();buildTimeline();renderAt(currentTime)}};
+$("ai33Speed").oninput=()=>{const c=selChar();if(c){c.ai33Speed=Math.max(.25,+$("ai33Speed").value||1);syncVoiceSelect();buildTimeline();renderAt(currentTime)}};
+$("imgFile").onchange=async e=>{const f=e.target.files[0];e.target.value="";const c=selChar();if(!f||!c)return;try{c.image=await uploadAsset("char",await readFileAsDataURL(f));renderAt(currentTime)}catch(err){$("status").textContent="Error al guardar la imagen: "+err.message}};
+$("addChar").onclick=()=>{const n=Object.keys(state.chars).length+1,side=n%2?"left":"right";addCharacter({name:"Personaje "+n,side,...C.theme({theme:state.theme})[side]});sync();drawChars();buildTimeline();renderAt(currentTime)};
+
+$("removeChar").onclick=()=>{const c=selChar();if(!c)return;if(!confirm(`¿Quitar a «${c.name}» de este proyecto? (sus líneas del guion dejarán de mostrarse)`))return;delete state.chars[state.selected];state.selected=Object.keys(state.chars)[0]||null;sync();drawChars();buildTimeline();renderAt(currentTime)};
+function newCharId(){return "c"+Date.now().toString(36)+Math.random().toString(36).slice(2,5)}
+function addCharacter(data){const id=newCharId();state.chars[id]={side:"left",color:"#39c96b",textColor:"#ffffff",strokeColor:"#000000",stroke:2,size:150,photoX:0,photoY:0,bubbleX:0,bubbleSize:100,nameSize:30,image:"",...data};state.selected=id;return id}
+
+/* ───────── Biblioteca de personajes ───────── */
+async function loadLibrary(){try{const j=await (await fetch("/library")).json();state.library=j.characters||[]}catch(_){state.library=[]}const sel=$("libSelect");sel.innerHTML="";if(!state.library.length){sel.innerHTML='<option value="">(biblioteca vacía)</option>';return}state.library.forEach(c=>{const o=document.createElement("option");o.value=c.name;o.textContent=c.name+(c.ai33Voice?" · 🗣":"");sel.append(o)})}
+const libFind=name=>state.library.find(x=>String(x.name).trim().toLowerCase()===String(name||"").trim().toLowerCase());
+function libToChar(lc){const {id,updatedAt,...rest}=lc;return JSON.parse(JSON.stringify(rest))}
+
+/* ───────── Voces guardadas ───────── */
+const voiceFind=name=>(state.voices||[]).find(v=>String(v.name).trim().toLowerCase()===String(name||"").trim().toLowerCase());
+async function loadVoices(){try{const j=await (await fetch("/voices")).json();state.voices=j.voices||[]}catch(_){state.voices=[]}renderVoiceSelect();syncEventVoiceOptions()}
+function renderVoiceSelect(){const sel=$("voiceSelect");sel.innerHTML='<option value="">'+(state.voices.length?"Elegir una voz guardada…":"(todavía no hay voces guardadas)")+'</option>';state.voices.forEach(v=>{const o=document.createElement("option");o.value=v.name;o.textContent=`${v.name} · ${v.voice_id}${Number(v.speed)&&Number(v.speed)!==1?" · ×"+v.speed:""}`;sel.append(o)});syncVoiceSelect()}
+/** Marca en el desplegable la voz guardada que coincide con la del personaje seleccionado. */
+function syncVoiceSelect(){const c=selChar(),sel=$("voiceSelect");if(!sel)return;const v=c&&(state.voices||[]).find(x=>x.voice_id===c.ai33Voice&&Number(x.speed||1)===Number(c.ai33Speed||1))||(c&&(state.voices||[]).find(x=>x.voice_id===c.ai33Voice));sel.value=v?v.name:"";$("voiceDelete").disabled=!sel.value}
+$("voiceSelect").onchange=()=>{const v=voiceFind($("voiceSelect").value),c=selChar();$("voiceDelete").disabled=!v;if(!v||!c)return;c.ai33Voice=v.voice_id;c.ai33Speed=Number(v.speed)||1;$("ai33Voice").value=c.ai33Voice;$("ai33Speed").value=c.ai33Speed;syncEventVoiceOptions();buildTimeline();renderAt(currentTime);$("voiceStatus").textContent=`✓ Voz «${v.name}» asignada a ${c.name}.`};
+$("voiceSave").onclick=async()=>{const c=selChar();if(!c)return;const voice_id=$("ai33Voice").value.trim();const name=$("voiceName").value.trim()||c.name;if(!voice_id){$("voiceStatus").textContent="Escribe primero el AI33 Voice ID.";return}
+  try{await postJSON("/voices/save",{name,voice_id,speed:Number($("ai33Speed").value)||1});await loadVoices();$("voiceName").value="";$("voiceStatus").textContent=`✓ Voz «${name}» guardada. Ya puedes elegirla en cualquier personaje.`}catch(e){$("voiceStatus").textContent="Error: "+e.message}};
+$("voiceDelete").onclick=async()=>{const name=$("voiceSelect").value;if(!name||!confirm(`¿Borrar la voz «${name}» de la lista? (los personajes que ya la usan la conservan)`))return;try{await postJSON("/voices/delete",{name});await loadVoices();$("voiceStatus").textContent=`Voz «${name}» borrada de la lista.`}catch(e){$("voiceStatus").textContent="Error: "+e.message}};
+
+/* ───────── Personajes desde el guion ───────── */
+const NOT_A_CHARACTER=/^(t[ií]tulo inicial|t[ií]tulo|evento|nota|notas|https?|www)$/i;
+const isCreatableName=name=>!NOT_A_CHARACTER.test(name)&&!/[\/\\{}\[\]<>]/.test(name);
+/** Crea los personajes que aparecen en el guion y no existen. Si están en la biblioteca, con su foto y voz;
+ *  si hay una voz guardada con su mismo nombre, se le asigna. Al pegar, quita los personajes vacíos que el guion no usa. */
+function createCharactersFromScript(fromPaste){
+  const script=$("script").value,parsed=C.parseScript(script,Object.values(state.chars));
+  const created=[],ids=[];
+  for(const name of parsed.unknownNames){
+    if(!isCreatableName(name))continue;
+    const lc=libFind(name);let id;
+    if(lc)id=addCharacter(libToChar(lc));
+    else{const n=Object.keys(state.chars).length,side=n%2?"right":"left";id=addCharacter({name,side,...C.theme({theme:state.theme})[side]})}
+    const c=state.chars[id],v=voiceFind(name);if(!c.ai33Voice&&v){c.ai33Voice=v.voice_id;c.ai33Speed=Number(v.speed)||1}
+    ids.push(id);created.push(name+(lc?" (biblioteca)":c.ai33Voice?" (voz guardada)":""));
+  }
+  if(!created.length)return;
+  const removed=[];
+  if(fromPaste){const used=new Set(C.parseScript(script,Object.values(state.chars)).messages.map(m=>m.char));
+    for(const [id,c] of Object.entries(state.chars))if(!used.has(c)&&!c.image&&!c.ai33Voice){removed.push(c.name);delete state.chars[id]}}
+  state.selected=ids.find(id=>state.chars[id])||Object.keys(state.chars)[0]||null;
+  sync();drawChars();buildTimeline();renderGroupEvents();renderAt(currentTime);
+  const pend=Object.values(state.chars).filter(c=>!c.image||!c.ai33Voice).map(c=>c.name);
+  $("charsStatus").innerHTML=`<span style="color:var(--accent)">✓ Personajes creados desde el guion: ${created.map(escapeHtml).join(", ")}.</span>`+(removed.length?` Quitados (sin usar): ${removed.map(escapeHtml).join(", ")}.`:"")+(pend.length?` Faltan foto o voz: ${pend.map(escapeHtml).join(", ")}.`:"");
+  const det=$("chars").closest("details");if(det)det.open=true;
+}
+$("libAdd").onclick=()=>{const lc=libFind($("libSelect").value);if(!lc)return;const existing=C.findChar(Object.values(state.chars),lc.name);if(existing){Object.assign(existing,libToChar(lc));state.selected=Object.keys(state.chars).find(k=>state.chars[k]===existing)}else addCharacter(libToChar(lc));sync();drawChars();buildTimeline();renderAt(currentTime);$("libStatus").textContent=`✓ «${lc.name}» añadido al proyecto.`};
+$("libSave").onclick=async()=>{const c=selChar();if(!c)return;try{const j=await postJSON("/library/save",{character:c});await loadLibrary();$("libSelect").value=j.character.name;$("libStatus").textContent=`✓ «${c.name}» guardado en la biblioteca.`}catch(e){$("libStatus").textContent="Error: "+e.message}};
+$("libDelete").onclick=async()=>{const name=$("libSelect").value;if(!name||!confirm(`¿Borrar «${name}» de la biblioteca? (no afecta a los proyectos)`))return;try{await postJSON("/library/delete",{name});await loadLibrary();$("libStatus").textContent=`«${name}» borrado de la biblioteca.`}catch(e){$("libStatus").textContent="Error: "+e.message}};
+
+/* ───────── Guion, fondo y sonido ───────── */
+$("script").oninput=()=>{buildTimeline();renderGroupEvents();renderAt(currentTime)};
+// Al pegar un guion se crean solos los personajes que aparecen en él.
+$("script").addEventListener("paste",()=>setTimeout(()=>createCharactersFromScript(true),0));
+$("bg").oninput=()=>{state.bgColor=$("bg").value;syncBackground();renderAt(currentTime)};
+$("bgFit").oninput=()=>{state.bgFit=$("bgFit").value;syncBackground();renderAt(currentTime)};
+$("bgFile").onchange=async e=>{const f=e.target.files?.[0];e.target.value="";if(!f)return;try{state.bgImage=await uploadAsset("background",await readFileAsDataURL(f));syncBackground();renderAt(currentTime);await saveNow()}catch(err){$("bgStatus").textContent="Error al guardar la foto: "+err.message}};
+["delay","typing","duration","anim","fps","sideMode"].forEach(id=>$(id).oninput=()=>{buildTimeline();renderAt(currentTime)});
+$("renderSpeed").oninput=()=>scheduleSave();
+$("soundFile").onchange=async e=>{const f=e.target.files[0];e.target.value="";if(!f)return;try{state.sound=await uploadAsset("sound",await readFileAsDataURL(f));state.audioBuffer=null;syncSoundStatus(f.name);scheduleSave()}catch(err){$("soundStatus").textContent="Error al guardar el sonido: "+err.message}};
+/* Música de fondo */
+function syncMusic(){$("musicVolume").value=state.musicVolume;$("musicDuck").value=state.musicDuck;$("musicVolumeLabel").textContent=state.musicVolume+"%";$("musicDuckLabel").textContent=state.musicDuck+"%";$("musicRemove").disabled=!state.music;$("musicStatus").textContent=state.music?`🎵 ${state.musicName||"Música cargada"} · suena en bucle todo el vídeo y baja al ${state.musicDuck}% mientras hablan las voces.`:"Sin música. Suena en bucle todo el vídeo y baja sola mientras hablan las voces."}
+$("musicFile").onchange=async e=>{const f=e.target.files[0];e.target.value="";if(!f)return;$("musicStatus").textContent="Subiendo la música…";try{state.music=await uploadAsset("music",await readFileAsDataURL(f));state.musicName=f.name;stopMusic();syncMusic();scheduleSave()}catch(err){$("musicStatus").textContent="Error al guardar la música: "+err.message}};
+$("musicRemove").onclick=()=>{state.music=null;state.musicName="";stopMusic();state.musicEl=null;syncMusic();scheduleSave()};
+$("musicVolume").oninput=()=>{state.musicVolume=+$("musicVolume").value;syncMusic();state.lastProject=project();scheduleSave()};
+$("musicDuck").oninput=()=>{state.musicDuck=+$("musicDuck").value;syncMusic();state.lastProject=project();scheduleSave()};
+function syncSoundStatus(name){$("soundStatus").textContent=state.sound?"🔊 Sonido cargado"+(name?": "+name:"")+" · sonará al entrar cada mensaje":"Sin sonido cargado.";$("soundRemove").disabled=!state.sound}
+
+/* ───────── Eventos del grupo ───────── */
+function autoEventVoice(actor){const cs=Object.values(state.chars);const c=C.findChar(cs,actor);return c?.ai33Voice||cs.find(x=>x.ai33Voice)?.ai33Voice||""}
+/** Sincroniza título inicial y eventos "evento:" desde el guion (conservando audios ya generados). */
+function syncScriptState(){
+  const parsed=C.parseScript($("script").value,Object.values(state.chars));
+  if(parsed.initialTitle!==state.initialTitle){state.initialTitle=parsed.initialTitle;state.initialTitleAudio=null;state.initialTitleDuration=0;state.initialTitleAudioCacheKey=""}
+  state.groupEvents=C.mergeGroupEvents(state.groupEvents,parsed.scriptEvents).map(ev=>String(ev.id||"").startsWith("script-")?{...ev,voice_id:ev.voice_id||autoEventVoice(""),speed:ev.speed||1}:ev);
+  state.groupEvents.sort((a,b)=>(Number(a.afterMessage)||0)-(Number(b.afterMessage)||0));
+  return parsed;
+}
+function renderGroupEvents(){const box=$("groupEventsList");if(!box)return;box.innerHTML="";if(!state.groupEvents.length){box.innerHTML='<div class="small" style="margin-top:8px">Sin eventos de grupo.</div>';return}state.groupEvents.forEach((ev,i)=>{const fromScript=String(ev.id||"").startsWith("script-");const card=document.createElement("div");card.className="eventCard";card.innerHTML=`<div style="display:flex;gap:10px;align-items:center"><b style="flex:1">${escapeHtml(C.eventLabel(ev))}</b>${fromScript?'<span class="small">desde el guion</span>':`<button class="btn eventRemove" data-i="${i}">Eliminar</button>`}</div><div class="small">${Number(ev.afterMessage)===0?"Antes del primer mensaje":"Después del mensaje "+ev.afterMessage}${ev.audio?" · 🔊 "+Number(ev.audioDuration||0).toFixed(2)+" s":""}</div>`;box.append(card)});box.querySelectorAll(".eventRemove").forEach(b=>b.onclick=()=>{state.groupEvents.splice(+b.dataset.i,1);buildTimeline();renderGroupEvents();renderAt(currentTime)})}
+function syncEventVoiceOptions(){const sel=$("eventVoice");if(!sel)return;const current=sel.value;sel.innerHTML='<option value="">Automática según la persona</option>';const seen=new Set();Object.values(state.chars).filter(c=>c.ai33Voice).forEach(c=>{seen.add(c.ai33Voice);const o=document.createElement("option");o.value=c.ai33Voice;o.textContent=`${c.name} · ${c.ai33Voice}`;sel.append(o)});(state.voices||[]).filter(v=>!seen.has(v.voice_id)).forEach(v=>{const o=document.createElement("option");o.value=v.voice_id;o.textContent=`🗣 ${v.name} · ${v.voice_id}`;sel.append(o)});if([...sel.options].some(o=>o.value===current))sel.value=current}
+function syncEventFields(){const type=$("eventType").value;const al=$("eventActorLabel"),vl=$("eventValueLabel"),v=$("eventValue");v.disabled=false;if(type==="leave"){al.textContent="Persona que sale";vl.textContent="Quién la saca (opcional)";v.placeholder="Nombre de quien la saca"}else if(type==="add"){al.textContent="Quién añade";vl.textContent="Persona añadida";v.placeholder="Nombre de la persona añadida"}else{al.textContent="Quién cambia el título";vl.textContent="Nuevo título";v.placeholder="Nuevo nombre del grupo"}syncEventVoiceOptions()}
+$("eventType").onchange=syncEventFields;
+$("addGroupEvent").onclick=()=>{const type=$("eventType").value,after=Math.max(0,parseInt($("eventAfter").value||"0",10)),actor=$("eventActor").value.trim(),value=$("eventValue").value.trim();if(!actor){$("status").textContent="Indica la persona del evento.";return}if((type==="add"||type==="title")&&!value){$("status").textContent=type==="add"?"Indica quién se añade al grupo.":"Indica el nuevo título.";return}state.groupEvents.push({id:"m-"+Date.now().toString(36),type,afterMessage:after,actor,value,voice_id:$("eventVoice").value.trim()||autoEventVoice(actor),speed:1});buildTimeline();renderGroupEvents();renderAt(currentTime);$("status").textContent="Evento de grupo añadido.";$("eventActor").value="";$("eventValue").value=""};
+$("clearGroupEvents").onclick=()=>{state.groupEvents=state.groupEvents.filter(e=>String(e.id||"").startsWith("script-"));buildTimeline();renderGroupEvents();renderAt(currentTime);$("status").textContent="Eventos manuales eliminados. Los del guion se quitan borrando su línea «evento:»."};
+
+/* ───────── Proyecto y línea de tiempo ───────── */
+let events=[],cues=[],totalMs=0,currentTime=0;
+function project(){const res=$("resolution")?.value||"1920x1080";const [videoWidth,videoHeight]=res.split("x").map(Number);return{projectSlug:state.projectSlug||"",projectName:state.projectName||"",videoWidth,videoHeight,groupName:state.groupName,groupMembers:state.groupMembers,headerSize:state.headerSize,initialTitle:state.initialTitle,initialTitleAudio:state.initialTitleAudio,initialTitleAudioCacheKey:state.initialTitleAudioCacheKey||"",initialTitleDuration:state.initialTitleDuration,initialTitleFont:state.initialTitleFont,initialTitleSize:state.initialTitleSize,initialTitleColor:state.initialTitleColor,initialTitleStrokeColor:state.initialTitleStrokeColor,initialTitleStroke:state.initialTitleStroke,eventSize:state.eventSize,groupEvents:state.groupEvents,chars:Object.values(state.chars),script:$("script").value,delay:+$("delay").value||0,typing:+$("typing").value||0,duration:+$("duration").value||2.2,anim:$("anim").value,sideMode:$("sideMode").value,bg:state.bgColor,bgColor:state.bgColor,bgImage:state.bgImage,bgFit:state.bgFit,fps:+$("fps").value||30,sound:state.sound,music:state.music,musicName:state.musicName||"",musicVolume:state.musicVolume,musicDuck:state.musicDuck,dialogueMessages:state.dialogueMessages,popupDelay:0.35,theme:state.theme||"clasico",renderSpeed:$("renderSpeed").value}}
+function buildTimeline(){
+  syncScriptState();
+  state.lastProject=project();
+  const r=C.buildEvents(state.lastProject);
+  events=r.events;totalMs=events.length?r.totalMs:0;
+  musicSegs=C.voiceSegments(state.lastProject,events);
+  const popup=(state.lastProject.popupDelay??0.35)*1000;
+  cues=[];
+  for(const e of events){
+    if(e.kind==="intro"&&e.audio)cues.push({t:0,audio:e.audio});
+    if(e.kind==="system"&&e.audio)cues.push({t:e.visibleStart+120,audio:e.audio});
+    if(e.kind==="message"){cues.push({t:e.visibleStart,pop:true,short:!!e.audio});if(e.audio)cues.push({t:e.visibleStart+popup,audio:e.audio})}
+  }
+  const tl=$("timeline");$("timelineMeta").textContent=`${(totalMs/1000).toFixed(2)} s`;tl.innerHTML="";
+  events.forEach((e,i)=>{const row=document.createElement("div");row.className="trow "+(e.kind==="system"?"systemRow":e.kind==="intro"?"introRow":"");row.id="tr"+i;const dur=e.audioDuration?e.audioDuration.toFixed(2)+"s":e.audioMissing?'<span class="noVoice">⚠ sin voz</span>':"";const label=e.kind==="system"?"⚙ Evento":e.kind==="intro"?"🎬 Título inicial":escapeHtml(e.char.name);row.innerHTML=`<span class="tbadge">${(e.start/1000).toFixed(1)}s</span><b>${label}</b><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(e.text)}</span><span>${dur}</span>`;tl.append(row)});
+  tl.querySelectorAll(".trow").forEach((row,i)=>row.onclick=()=>{const e=events[i];seek(e.kind==="message"?Math.min(e.end-1,e.visibleStart+400):e.visibleStart+200)});
+  const sk=$("seek");sk.max=Math.max(1,Math.round(totalMs));$("seekTotal").textContent=(totalMs/1000).toFixed(1)+" s";
+  const unknown=r.parsed.unknownNames,warns=[];
+  if(unknown.length)warns.push(`⚠ Líneas ignoradas: no hay personaje llamado ${unknown.map(n=>"«"+escapeHtml(n)+"»").join(", ")}.${unknown.some(isCreatableName)?' <button class="btn" id="createFromScript" style="padding:4px 9px;margin-left:4px;font-size:11px">＋ Crear personajes</button>':""}`);
+  if(r.missingAudio)warns.push(`⚠ ${r.missingAudio} ${r.missingAudio===1?"mensaje ha cambiado y no tiene":"mensajes han cambiado y no tienen"} voz. Pulsa «Generar voces»: solo se generan los que faltan.`);
+  $("scriptWarn").innerHTML=warns.map(w=>`<div class="warn">${w}</div>`).join("");
+  if($("createFromScript"))$("createFromScript").onclick=()=>createCharactersFromScript(false);
+    lastSig="";scheduleSave();
+}
+
+/* ───────── Vista previa: mismo núcleo y mismos estilos que Remotion ───────── */
+function css(el,st){for(const k in st)el.style.setProperty(k.replace(/[A-Z]/g,m=>"-"+m.toLowerCase()),st[k]);return el}
+function h(tag,st,text){const e=document.createElement(tag);if(st)css(e,st);if(text!=null)e.textContent=text;return e}
+let lastSig="",lastAnimating=false,lastHighlight=-2;
+function highlightTimeline(ms){let idx=-1;events.forEach((e,i)=>{if(ms>=e.start&&ms<e.end)idx=i});if(idx===lastHighlight)return;const prev=$("tr"+lastHighlight);if(prev)prev.classList.remove("on");const cur=$("tr"+idx);if(cur){cur.classList.add("on");if(state.playing)cur.scrollIntoView({block:"nearest"})}lastHighlight=idx}
+function renderAt(ms,force=true,save=force){
+  currentTime=ms;
+  if(force||!state.lastProject)state.lastProject=project();
+  const p=state.lastProject,f=C.frameAt(p,events,ms);
+  updateSeekUI(ms);
+  if(!force&&f.sig===lastSig&&!f.animating&&!lastAnimating){highlightTimeline(ms);return}
+  lastSig=f.sig;lastAnimating=f.animating;
+  const canvas=$("previewCanvas");
+  css(canvas,C.styles.background({...p,__bgUrl:p.bgImage||null}));
+  canvas.replaceChildren();
+  if(f.intro){const w=h("div",C.styles.introWrap(p));w.append(h("div",C.styles.introText(p),f.intro.text));canvas.append(w)}
+  else{
+    const hd=h("div",C.styles.header(p));hd.append(h("div"),h("div",C.styles.headerName(p),f.header.name),h("div",C.styles.headerMembers(p),C.membersLabel(f.header.count)));
+    const outer=h("div",C.styles.chatOuter(p)),inner=h("div",C.styles.chatInner(p)),stack=h("div",C.styles.chatStack());
+    for(const e of f.shown){
+      if(e.kind==="system"){const w=h("div",C.styles.systemWrap());w.append(h("div",C.styles.systemText(p),C.systemText(e.text,p)));stack.append(w);continue}
+      const c=e.char,row=h("div",C.styles.row(p,C.messageMotion(e,e===f.lastMessage,ms,p.anim)));
+      const vis=h("div",C.styles.visual(c));const im=h("img",C.styles.img(c));im.className="mini";im.dataset.char=c.name;im.draggable=false;im.src=c.image||C.BLANK_IMG;vis.append(im,h("div",C.styles.name(p,c),c.name));
+      const side=h("div",C.styles.side(c));side.append(h("div",C.styles.bubble(p,c),e.text));
+      const rs=C.reactionState(e,ms);
+      if(rs){const pill=h("div",C.styles.reactions(p,c,rs));e.reactions.forEach(r=>{const sp=h("span",null,r.emoji);if(r.count>1)sp.append(h("span",C.styles.reactionCount(c),String(r.count)));pill.append(sp)});side.append(pill)}
+      row.append(vis,side);stack.append(row);
+    }
+    if(f.typing){const tr=h("div",C.styles.typingRow(p));tr.append(h("div",C.styles.typing(p,f.typing.char),"•••"));stack.append(tr)}
+    inner.append(stack);outer.append(inner);canvas.append(hd,outer);
+  }
+  highlightTimeline(ms);
+  if(save)scheduleSave();
+}
+
+/* ───────── Saltar a un momento ───────── */
+let seeking=false;
+function updateSeekUI(ms){if(!seeking)$("seek").value=Math.round(ms);$("seekTime").textContent=(ms/1000).toFixed(1)+" s"}
+function seek(ms){ms=Math.max(0,Math.min(Math.max(0,totalMs-1),ms));stopPreviewSounds();if(state.playing){state.playStart=performance.now()-ms;state.prevMs=ms}renderAt(ms,!state.playing,false)}
+$("seek").addEventListener("input",()=>{seeking=true;seek(+$("seek").value)});
+$("seek").addEventListener("change",()=>{seeking=false});
+
+// Lienzo virtual igual que Remotion (1920×1080 o 1080×1920); solo se escala para encajar.
+const previewStage=$("stage"),previewCanvas=$("previewCanvas");
+const canvasDims=()=>C.canvasSize(state.lastProject||project());
+function fitPreviewCanvas(){if(!previewStage||!previewCanvas)return;const d=canvasDims();previewStage.classList.toggle("vertical",d.h>d.w);previewCanvas.style.width=d.w+"px";previewCanvas.style.height=d.h+"px";previewCanvas.style.transform=`scale(${Math.min(previewStage.clientWidth/d.w,previewStage.clientHeight/d.h)})`}
+if(window.ResizeObserver&&previewStage)new ResizeObserver(fitPreviewCanvas).observe(previewStage);
+window.addEventListener("resize",fitPreviewCanvas);fitPreviewCanvas();
+
+// Arrastrar la foto de un personaje en la vista previa.
+let dragState=null;
+previewCanvas.addEventListener("pointerdown",e=>{const img=e.target.closest(".mini");if(!img)return;const c=Object.values(state.chars).find(x=>x.name===img.dataset.char);if(!c)return;e.preventDefault();dragState={c,startX:e.clientX,startY:e.clientY,x:c.photoX||0,y:c.photoY||0}});
+window.addEventListener("pointermove",e=>{if(!dragState)return;const c=dragState.c,rect=previewStage.getBoundingClientRect(),d=canvasDims(),sx=d.w/rect.width,sy=d.h/rect.height;c.photoX=Math.max(-900,Math.min(900,Math.round(dragState.x+(e.clientX-dragState.startX)*sx)));c.photoY=Math.max(-500,Math.min(500,Math.round(dragState.y+(e.clientY-dragState.startY)*sy)));if(c===selChar()){$("photoX").value=c.photoX;$("photoY").value=c.photoY}renderAt(currentTime)});
+window.addEventListener("pointerup",()=>dragState=null);window.addEventListener("pointercancel",()=>dragState=null);
+
+/* ───────── Audio de la vista previa (mismos tiempos que el MP4) ───────── */
+async function preparePreviewAudio(){
+  const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;
+  if(!state.audioCtx)state.audioCtx=new AC();await state.audioCtx.resume();
+  if(!state.sound||state.audioBuffer)return;
+  try{const buf=await (await fetch(state.sound)).arrayBuffer();state.audioBuffer=await state.audioCtx.decodeAudioData(buf)}catch(err){console.warn("No se pudo preparar el sonido de vista previa",err);state.audioBuffer=null}
+}
+function playPop(short){if(!state.audioCtx||!state.audioBuffer)return;try{const src=state.audioCtx.createBufferSource();src.buffer=state.audioBuffer;src.connect(state.audioCtx.destination);src.start(0);if(short)src.stop(state.audioCtx.currentTime+0.35);state.audioSources.push(src);src.onended=()=>{state.audioSources=state.audioSources.filter(x=>x!==src)}}catch(err){console.warn(err)}}
+function playUrl(url){try{const a=new Audio(url);a.play().catch(()=>{});state.players.push(a);a.onended=()=>{state.players=state.players.filter(x=>x!==a)}}catch(err){console.warn(err)}}
+let musicSegs=[];
+function musicElement(){if(!state.music)return null;if(!state.musicEl||state.musicEl.dataset.src!==state.music){if(state.musicEl)state.musicEl.pause();const el=new Audio(state.music);el.loop=true;el.preload="auto";el.dataset.src=state.music;state.musicEl=el}return state.musicEl}
+function stopMusic(){if(state.musicEl){try{state.musicEl.pause()}catch(_){}}}
+/** En cada fotograma de la vista previa: la música suena en su posición y con el volumen del ducking. */
+function musicTick(ms){const el=musicElement();if(!el)return;el.volume=C.musicVolume(state.lastProject||project(),musicSegs,ms,totalMs);if(el.paused){const d=el.duration;try{el.currentTime=d>0?(ms/1000)%d:ms/1000}catch(_){}el.play().catch(()=>{})}}
+function stopPreviewSounds(){stopMusic();state.audioSources.forEach(s=>{try{s.stop()}catch(_){}});state.audioSources=[];state.players.forEach(a=>{try{a.pause()}catch(_){}});state.players=[]}
+function fireCues(from,to){for(const q of cues){if(q.t>from&&q.t<=to){if(q.pop){if(state.sound)playPop(q.short)}else playUrl(q.audio)}}}
+$("play").onclick=async()=>{
+  cancelAnimationFrame(state.raf);stopPreviewSounds();await preparePreviewAudio();
+  buildTimeline();state.playing=true;
+  if(currentTime>=totalMs-1)currentTime=0;
+  state.playStart=performance.now()-currentTime;state.prevMs=currentTime-0.001;
+  function loop(now){
+    if(!state.playing)return;
+    const total=Math.max(1,totalMs);const raw=now-state.playStart;const m=raw%total;const previous=state.prevMs;
+    if(m<previous){fireCues(previous,total);stopPreviewSounds();fireCues(-1,m)}else fireCues(previous,m);
+    renderAt(m,false);musicTick(m);state.prevMs=m;state.raf=requestAnimationFrame(loop);
+  }
+  state.raf=requestAnimationFrame(loop);
+};
+$("stop").onclick=()=>{state.playing=false;cancelAnimationFrame(state.raf);stopPreviewSounds()};
+$("resetPreview").onclick=()=>{state.playing=false;cancelAnimationFrame(state.raf);stopPreviewSounds();renderAt(0);$("status").textContent="Vista previa reiniciada."};
+
+/* ───────── AI33 ───────── */
+function cachedAudioInfo(text,voice,speed,kind,existing){const cacheKey=C.audioCacheKey(text,voice,speed,kind);return{cacheKey,existingAudio:(existing&&existing.cacheKey===cacheKey&&existing.audio)?existing.audio:null}}
+const KEY_STORE="chatVideoMaker.ai33Key";
+function ai33Key(){const k=$("ai33Key").value.trim();try{if($("ai33Remember").checked&&k)localStorage.setItem(KEY_STORE,k)}catch(_){}return k}
+try{const k=localStorage.getItem(KEY_STORE);if(k){$("ai33Key").value=k;$("ai33Remember").checked=true}}catch(_){}
+$("ai33Remember").onchange=()=>{try{if($("ai33Remember").checked){const k=$("ai33Key").value.trim();if(k)localStorage.setItem(KEY_STORE,k)}else localStorage.removeItem(KEY_STORE)}catch(_){}};
+function pollJob(url,onTick){return new Promise((resolve,reject)=>{const poll=async()=>{try{const p=await (await fetch(url)).json();if(!p.ok)throw Error(p.error||"No se pudo consultar el progreso");onTick(p);if(p.phase==="done")return resolve(p);if(p.phase==="error")return reject(Error(p.error||p.message||"Error"));setTimeout(poll,400)}catch(e){reject(e)}};poll()})}
+$("ai33Generate").onclick=async()=>{
+  askNotifyPermission();closeAutoNotice();
+  const key=ai33Key();if(!key){$("ai33Status").textContent="Introduce la API Key de AI33.";return}
+  buildTimeline();
+  const parsed=C.parseScript($("script").value,Object.values(state.chars)).messages;
+  if(!parsed.length){$("ai33Status").textContent="No hay mensajes válidos en el guion.";return}
+  const messages=parsed.map(m=>{const {voice,speed}=C.messageVoice(m.char),key=C.audioCacheKey(m.text,voice,speed,"message"),cache=cachedAudioInfo(m.text,voice,speed,"message",state.dialogueMessages.find(x=>x&&x.cacheKey===key));return{lineIndex:m.lineIndex,kind:"message",text:m.text,voice_id:voice,speed,cacheKey:cache.cacheKey,existingAudio:cache.existingAudio}});
+  if(messages.some(x=>!x.voice_id)){$("ai33Status").textContent="Falta AI33 Voice ID en uno o más personajes.";return}
+  $("ai33Generate").disabled=true;$("ai33ProgressWrap").style.display="block";$("ai33ProgressBar").style.width="0%";$("ai33ProgressPct").textContent="0%";$("ai33ProgressText").textContent="Preparando audios…";
+  try{
+    const j=await postJSON("/ai33/messages",{projectSlug:state.projectSlug,api_key:key,messages});
+    const p=await pollJob("/ai33/progress/"+j.job,p=>{const pct=Math.max(0,Math.min(100,Number(p.percent)||0));$("ai33ProgressBar").style.width=pct+"%";$("ai33ProgressPct").textContent=pct+"%";$("ai33ProgressText").textContent=p.message||"Procesando…"});
+    state.dialogueMessages=(p.results||[]).filter(x=>x&&x.audio);buildTimeline();renderAt(currentTime);await saveNow();
+    $("ai33Status").textContent=`✓ ${state.dialogueMessages.length} audios disponibles; solo se generaron los que faltaban.`;
+    startAutoRender();
+  }catch(e){$("ai33Status").textContent="Error AI33: "+e.message;$("ai33ProgressText").textContent="Error"}
+  finally{$("ai33Generate").disabled=false}
+};
+$("generateEventAudio").onclick=async()=>{
+  askNotifyPermission();closeAutoNotice();
+  const key=ai33Key();if(!key){$("eventAudioStatus").textContent="Introduce la API Key de AI33 en el apartado de Voces.";return}
+  buildTimeline();
+  if(!state.groupEvents.length&&!state.initialTitle){$("eventAudioStatus").textContent="No hay eventos ni título inicial para generar.";return}
+  const items=state.groupEvents.map((ev,i)=>{const text=C.eventSpeech(ev),voice=(ev.voice_id||autoEventVoice(ev.actor)||"").trim(),speed=Math.max(.25,Number(ev.speed)||1),cache=cachedAudioInfo(text,voice,speed,"event",ev);return{eventIndex:i,kind:"event",text,voice_id:voice,speed,cacheKey:cache.cacheKey,existingAudio:cache.existingAudio}});
+  if(state.initialTitle){const voice=Object.values(state.chars).find(c=>c.ai33Voice)?.ai33Voice||"",cache=cachedAudioInfo(state.initialTitle,voice,1,"initialTitle",{audio:state.initialTitleAudio,cacheKey:state.initialTitleAudioCacheKey});items.unshift({eventIndex:-1,kind:"initialTitle",text:state.initialTitle,voice_id:voice,speed:1,cacheKey:cache.cacheKey,existingAudio:cache.existingAudio})}
+  if(items.some(x=>!x.voice_id)){$("eventAudioStatus").textContent="Falta una voz AI33 para algún evento. Configura una voz en un personaje o selecciona una voz en el evento.";return}
+  $("generateEventAudio").disabled=true;$("eventAudioStatus").textContent="Generando audios de eventos, uno por uno…";
+  try{
+    const j=await postJSON("/ai33/messages",{projectSlug:state.projectSlug,api_key:key,messages:items});
+    const p=await pollJob("/ai33/progress/"+j.job,p=>{$("eventAudioStatus").textContent=p.message||"Procesando eventos…"});
+    for(const res of (p.results||[])){const idx=Number(res.eventIndex);if(idx===-1){state.initialTitleAudio=res.audio;state.initialTitleDuration=Number(res.duration)||0;state.initialTitleAudioCacheKey=res.cacheKey||""}else if(state.groupEvents[idx]){Object.assign(state.groupEvents[idx],{audio:res.audio,audioDuration:Number(res.duration)||0,audioCacheKey:res.cacheKey||""})}}
+    buildTimeline();renderGroupEvents();renderAt(currentTime);await saveNow();
+    $("eventAudioStatus").textContent=`✓ ${(p.results||[]).length} audios disponibles; solo se generaron los que faltaban.`;
+    startAutoRender();
+  }catch(e){$("eventAudioStatus").textContent="Error AI33: "+e.message}finally{$("generateEventAudio").disabled=false}
+};
+$("ai33Clear").onclick=()=>{state.dialogueMessages=[];buildTimeline();renderAt(currentTime);$("ai33Status").textContent="Sin audios de AI33 asignados (los archivos siguen en la carpeta del proyecto y se reutilizarán).";$("ai33ProgressWrap").style.display="none"};
+$("ai33Folder").onclick=async()=>{try{const j=await postJSON("/ai33/open-folder",{projectSlug:state.projectSlug});$("ai33Status").textContent="📁 Carpeta: "+j.path}catch(e){$("ai33Status").textContent="No se pudo abrir la carpeta: "+e.message}};
+
+/* ───────── Aviso al terminar los audios → MP4 automático ───────── */
+const AUTO_RENDER_SECS=10,AUTO_RENDER_STORE="chatVideoMaker.autoRender";
+let autoTimer=0,autoEnd=0,baseTitle=document.title;
+try{const v=localStorage.getItem(AUTO_RENDER_STORE);if(v!=null)$("autoRender").checked=v==="1"}catch(_){}
+$("autoRender").onchange=()=>{try{localStorage.setItem(AUTO_RENDER_STORE,$("autoRender").checked?"1":"0")}catch(_){}if(!$("autoRender").checked)cancelAutoRender()};
+function noticeBeep(){try{const ctx=state.audioCtx||(state.audioCtx=new (window.AudioContext||window.webkitAudioContext)());ctx.resume?.();[0,.18].forEach((d,i)=>{const o=ctx.createOscillator(),g=ctx.createGain();o.frequency.value=i?1175:880;g.gain.setValueAtTime(.0001,ctx.currentTime+d);g.gain.exponentialRampToValueAtTime(.25,ctx.currentTime+d+.02);g.gain.exponentialRampToValueAtTime(.0001,ctx.currentTime+d+.16);o.connect(g).connect(ctx.destination);o.start(ctx.currentTime+d);o.stop(ctx.currentTime+d+.18)})}catch(_){}}
+function systemNotify(text){try{if(!("Notification" in window)||!document.hidden)return;if(Notification.permission==="granted")new Notification("Audios generados",{body:text});}catch(_){}}
+function askNotifyPermission(){try{if("Notification" in window&&Notification.permission==="default")Notification.requestPermission()}catch(_){}}
+function closeAutoNotice(){clearInterval(autoTimer);autoTimer=0;$("autoNotice").classList.remove("on");document.title=baseTitle}
+function cancelAutoRender(){if(!autoTimer)return;closeAutoNotice();$("status").textContent="Aviso apagado: el MP4 no se generará automáticamente."}
+function startAutoRender(){
+  if($("render").disabled)return;
+  closeAutoNotice();buildTimeline();
+  const r=C.buildEvents(state.lastProject),miss=r.missingAudio?` ⚠ ${r.missingAudio} ${r.missingAudio===1?"mensaje sigue":"mensajes siguen"} sin voz.`:"";
+  noticeBeep();
+  if(!$("autoRender").checked){$("autoNoticeText").textContent="Ya puedes pulsar «Generar MP4»."+miss;$("autoNoticeBar").style.width="0%";$("autoNoticeCancel").textContent="✕ Cerrar";$("autoNotice").classList.add("on");systemNotify("Ya puedes generar el MP4.");return}
+  $("autoNoticeCancel").textContent="✕ Apagar aviso";
+  autoEnd=performance.now()+AUTO_RENDER_SECS*1000;systemNotify(`El MP4 se generará en ${AUTO_RENDER_SECS} s si no apagas el aviso.`);
+  const tick=()=>{const left=Math.max(0,autoEnd-performance.now()),secs=Math.ceil(left/1000);
+    $("autoNoticeText").textContent=`El MP4 se generará en ${secs} s si no apagas el aviso.`+miss;
+    $("autoNoticeBar").style.width=(100-left/(AUTO_RENDER_SECS*10))+"%";document.title=`(${secs}) Audios listos · ${baseTitle}`;
+    if(left<=0){closeAutoNotice();$("render").click()}};
+  $("autoNotice").classList.add("on");tick();autoTimer=setInterval(tick,200);
+}
+$("autoNoticeCancel").onclick=()=>{if(autoTimer)cancelAutoRender();else closeAutoNotice()};
+$("autoNoticeNow").onclick=()=>{closeAutoNotice();$("render").click()};
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&autoTimer)cancelAutoRender()});
+
+/* ───────── Render MP4 ───────── */
+function syncResolutionBadge(){const v=$("resolution").value;$("resolutionBadge").textContent=({"1920x1080":"16:9 · 1920×1080","1280x720":"16:9 · 1280×720","1080x1920":"9:16 · 1080×1920","720x1280":"9:16 · 720×1280"})[v]||v}
+$("resolution").onchange=()=>{syncResolutionBadge();buildTimeline();fitPreviewCanvas();renderAt(currentTime);$("status").textContent="Formato: "+$("resolution").selectedOptions[0].textContent+"."};
+$("render").onclick=async()=>{
+  closeAutoNotice();
+  state.playing=false;cancelAnimationFrame(state.raf);stopPreviewSounds();buildTimeline();
+  $("render").disabled=true;$("status").textContent="Renderizando con Remotion…";$("download").innerHTML="";
+  const wrap=$("renderProgressWrap"),bar=$("renderProgressBar"),pct=$("renderProgressPct"),txt=$("renderProgressText");wrap.style.display="block";bar.style.width="0%";pct.textContent="0%";txt.textContent="Preparando…";
+  try{
+    const j=await postJSON("/export",project());
+    const p=await pollJob("/export/progress/"+j.job,p=>{const v=Math.max(0,Math.min(100,Number(p.percent)||0));bar.style.width=v+"%";pct.textContent=v+"%";txt.textContent=p.message||"Renderizando…"});
+    showVideoDownload(p.url);
+    $("status").textContent="✓ "+(p.message||"MP4 generado correctamente.");
+  }catch(e){$("status").textContent="Error: "+e.message;txt.textContent="Error"}
+  finally{$("render").disabled=false}
+};
+$("loadDemo").onclick=loadDemo;
+
+/* ───────── Descarga del MP4 ───────── */
+function showVideoDownload(url){
+  const box=$("download");box.innerHTML="";
+  const a=document.createElement("a");a.href=url+"?t="+Date.now();a.className="btn primary";a.textContent="⬇ Descargar MP4";a.download="";a.style.cssText="display:inline-block;margin:8px 8px 0 0";
+  const f=document.createElement("button");f.className="btn";f.textContent="📁 Abrir carpeta del vídeo";f.style.marginTop="8px";
+  f.onclick=async()=>{try{const j=await postJSON("/projects/open-folder",{projectSlug:state.projectSlug});$("status").textContent="📁 "+j.path}catch(e){$("status").textContent="No se pudo abrir la carpeta: "+e.message}};
+  box.append(a,f);
+}
+async function checkExistingVideo(){try{const r=await fetch(`/projects/${encodeURIComponent(state.projectSlug)}/video`,{method:"HEAD"});if(r.ok)showVideoDownload(`/projects/${encodeURIComponent(state.projectSlug)}/video`)}catch(_){}}
+
+/* ───────── Proyectos ───────── */
+async function loadProjects(){const box=$("projectList");try{const j=await (await fetch("/projects")).json();box.innerHTML="";if(!j.projects.length){box.innerHTML='<div class="projectEmpty">Todavía no hay proyectos. Crea el primero arriba.</div>';return}j.projects.forEach(p=>{const card=document.createElement("div");card.className="projectCard";card.innerHTML=`<b>${escapeHtml(p.projectName||p.projectSlug)}</b><div class="small">Carpeta: ${escapeHtml(p.projectSlug||"")}${p.updatedAt?" · "+escapeHtml(p.updatedAt):""}</div><button class="btn primary openProject" data-slug="${escapeHtml(p.projectSlug||"")}">Abrir proyecto</button>`;box.append(card)});box.querySelectorAll(".openProject").forEach(b=>b.onclick=()=>location.href="/?project="+encodeURIComponent(b.dataset.slug))}catch(e){box.innerHTML='<div class="projectEmpty">Error: '+escapeHtml(e.message)+'</div>'}}
+async function createNewProject(){const name=$("newProjectName").value.trim();if(!name)return;$("createProject").disabled=true;try{const j=await postJSON("/projects/create",{name});location.href="/?project="+encodeURIComponent(j.projectSlug)}catch(e){alert(e.message)}finally{$("createProject").disabled=false}}
+function applyProjectData(rp){
+  state.projectSlug=rp.projectSlug||state.projectSlug;state.projectName=rp.projectName||state.projectName;
+  if(rp.videoWidth&&rp.videoHeight)$("resolution").value=`${rp.videoWidth}x${rp.videoHeight}`;
+  if(rp.groupName!=null)state.groupName=String(rp.groupName);
+  if(rp.groupMembers!=null)state.groupMembers=Math.max(0,Number(rp.groupMembers)||0);
+  state.headerSize=Number(rp.headerSize)||108;state.eventSize=Number(rp.eventSize)||28;
+  if(rp.initialTitle!=null)state.initialTitle=String(rp.initialTitle);
+  state.initialTitleAudio=rp.initialTitleAudio||null;state.initialTitleAudioCacheKey=rp.initialTitleAudioCacheKey||"";state.initialTitleDuration=Number(rp.initialTitleDuration)||0;
+  state.initialTitleFont=rp.initialTitleFont||"Arial";state.initialTitleSize=Number(rp.initialTitleSize)||72;state.initialTitleColor=rp.initialTitleColor||"#ffffff";state.initialTitleStrokeColor=rp.initialTitleStrokeColor||"#000000";state.initialTitleStroke=Number(rp.initialTitleStroke)||0;
+  if(Array.isArray(rp.groupEvents))state.groupEvents=rp.groupEvents;
+  if(Array.isArray(rp.chars)&&rp.chars.length){state.chars={};rp.chars.forEach((c,i)=>state.chars["c"+i]={bubbleSize:100,...c});state.selected=Object.keys(state.chars)[0]||null}
+  if(typeof rp.script==="string")$("script").value=rp.script;
+  state.bgColor=typeof rp.bgColor==="string"?rp.bgColor:(typeof rp.bg==="string"?rp.bg:state.bgColor);state.bgImage=rp.bgImage||null;state.bgFit=rp.bgFit||"cover";
+  if(rp.delay!=null)$("delay").value=rp.delay;if(rp.typing!=null)$("typing").value=rp.typing;if(rp.duration!=null)$("duration").value=rp.duration;if(rp.anim)$("anim").value=rp.anim;$("sideMode").value=rp.sideMode==="fixed"?"fixed":"alternate";if(rp.fps)$("fps").value=rp.fps;
+  state.sound=rp.sound||null;state.music=rp.music||null;state.musicName=rp.musicName||"";state.musicVolume=rp.musicVolume!=null?Number(rp.musicVolume):25;state.musicDuck=rp.musicDuck!=null?Number(rp.musicDuck):8;state.dialogueMessages=rp.dialogueMessages||[];
+  state.theme=C.THEMES[rp.theme]?rp.theme:"clasico";if(rp.renderSpeed)$("renderSpeed").value=rp.renderSpeed;
+  if(state.dialogueMessages.length)$("ai33Status").textContent=`✓ ${state.dialogueMessages.length} audios de mensajes cargados del proyecto.`;
+  syncChatHeader();syncBackground();syncTitleInputs();syncSoundStatus();syncMusic();syncResolutionBadge();syncThemeSelect();syncEventFields();sync();drawChars();buildTimeline();fitPreviewCanvas();renderGroupEvents();renderAt(0);
+}
+/** Proyectos antiguos: imágenes/sonido incrustados en base64 → archivos del proyecto. */
+async function migrateEmbeddedAssets(){
+  let changed=false;
+  try{
+    for(const c of Object.values(state.chars)){if(String(c.image||"").startsWith("data:")){c.image=await uploadAsset("char",c.image);changed=true}}
+    if(String(state.sound||"").startsWith("data:")){state.sound=await uploadAsset("sound",state.sound);changed=true}
+    if(String(state.bgImage||"").startsWith("data:")){state.bgImage=await uploadAsset("background",state.bgImage);changed=true}
+  }catch(e){console.warn("Migración de archivos incompleta",e)}
+  if(changed){renderAt(currentTime);await saveNow()}
+}
+async function initProjectManager(){
+  $("createProject").onclick=createNewProject;$("newProjectName").onkeydown=e=>{if(e.key==="Enter")createNewProject()};
+  const rp=window.__PROJECT_DATA__;
+  if(rp&&rp.projectSlug){
+    $("projectHome").classList.add("hidden");$("editorApp").style.display="block";
+    fitPreviewCanvas();
+    if(!Array.isArray(rp.chars)||!rp.chars.length)loadDemo();
+    applyProjectData(rp);
+    state.loaded=true;$("saveStatus").textContent="✓ Proyecto cargado";checkExistingVideo();
+    migrateEmbeddedAssets();
+  }else await loadProjects();
+}
+syncChatHeader();syncBackground();syncTitleInputs();syncThemeSelect();syncEventFields();
+Promise.all([loadLibrary(),loadVoices()]).finally(initProjectManager);
+</script></body></html>
