@@ -91,6 +91,74 @@
   };
   C.theme = (p) => C.THEMES[(p && p.theme) || 'clasico'] || C.THEMES.clasico;
 
+  /* ───────────────────────── Efectos visuales (opcionales, por proyecto: p.fx) ───────────────────────── */
+
+  C.FX_KEYS = ['text', 'tail', 'bg', 'speaker', 'header', 'details', 'smooth'];
+  C.FX_ALL = { text: true, tail: true, bg: true, speaker: true, header: true, details: true, smooth: true, clock: '21:14' };
+  C.FX_NONE = { text: false, tail: false, bg: false, speaker: false, header: false, details: false, smooth: false, clock: '21:14' };
+  C.fx = (p) => (p && p.fx) || C.FX_NONE;
+  C.FX_FONT = 'Nunito, "Segoe UI", "Helvetica Neue", Arial, sans-serif';
+  C.FX_FONT_URL = 'https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&display=swap';
+  /** Tipografía de burbujas, nombres y cabecera: la de la plantilla, o Nunito con «Texto limpio». */
+  const fontOf = (p) => (C.fx(p).text ? C.FX_FONT : C.theme(p).font);
+
+  /** Primer color #hex de un valor (los degradados de Instagram también valen). */
+  C.solidColor = (col) => {
+    const m = String(col || '').match(/#([0-9a-f]{6}|[0-9a-f]{3})\b/i);
+    if (!m) return '#888888';
+    const h = m[1].length === 3 ? m[1].split('').map((x) => x + x).join('') : m[1];
+    return '#' + h.toLowerCase();
+  };
+  const rgbOf = (hex) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+  const mixHex = (a, b, k) => { const A = rgbOf(a), B = rgbOf(b); return '#' + A.map((v, i) => Math.round(v + (B[i] - v) * k).toString(16).padStart(2, '0')).join(''); };
+  const rgba = (hex, a) => `rgba(${rgbOf(hex).join(',')},${a})`;
+
+  /** «*palabra*» en un mensaje → trozo resaltado. Devuelve [{t, hi}]. */
+  C.richText = (text) => {
+    const s = String(text || ''), out = [], re = /\*([^*\n]+)\*/g;
+    let last = 0, m;
+    while ((m = re.exec(s))) {
+      if (m.index > last) out.push({ t: s.slice(last, m.index), hi: false });
+      out.push({ t: m[1], hi: true });
+      last = re.lastIndex;
+    }
+    if (last < s.length) out.push({ t: s.slice(last), hi: false });
+    return out;
+  };
+
+  /** Hora falsa del mensaje: la «Hora del chat» + 1 minuto cada 20 s de vídeo. */
+  C.messageClock = (p, e) => {
+    const m = String(C.fx(p).clock || '21:14').match(/^(\d{1,2}):(\d{2})/);
+    const base = m ? Number(m[1]) * 60 + Number(m[2]) : 21 * 60 + 14;
+    const t = (base + Math.floor((Number(e.visibleStart) || 0) / 20000)) % (24 * 60);
+    return String(Math.floor(t / 60)).padStart(2, '0') + ':' + String(t % 60).padStart(2, '0');
+  };
+
+  /** Estado visual de una fila de mensaje en el fotograma f (quién habla, quién se atenúa, foto agrupada…). */
+  C.rowState = (p, f, e, ms) => {
+    const fx = C.fx(p);
+    const speaking = !!(fx.speaker && f.speakingKey && e.key === f.speakingKey);
+    return {
+      ms, speaking,
+      dim: !!(fx.speaker && f.speakingKey && !speaking),
+      compact: !!e.hideAvatar,
+      tail: !!(fx.tail && !e.hideAvatar),
+      meta: fx.details ? C.messageClock(p, e) : null,
+    };
+  };
+
+  /** Cabecera enriquecida: fotos del grupo y subtítulo («Ana está escribiendo…» o los nombres). null si está apagada. */
+  C.headerExtras = (p, f) => {
+    if (!C.fx(p).header) return null;
+    const chars = (p.chars || []).filter((c) => c && c.name);
+    const typing = f.typing && f.typing.char ? f.typing.char.name : '';
+    return {
+      avatars: chars.filter((c) => c.image).slice(0, 4).map((c) => c.image),
+      subtitle: typing ? `${typing} está escribiendo…` : chars.map((c) => c.name).join(', '),
+      typing: !!typing,
+    };
+  };
+
   /** Aplica una plantilla: devuelve los cambios para el proyecto y para cada personaje según su lado. */
   C.applyTheme = (themeId, chars) => {
     const t = C.THEMES[themeId] || C.THEMES.clasico;
@@ -175,6 +243,7 @@
 
   /** Texto que se envía a la voz: sin emojis (el guion visual no cambia). Igual que strip_emojis_for_tts en server.py. */
   C.ttsText = (text) => String(text || '')
+    .replace(/\*/g, '')
     .replace(/[\u{1F1E6}-\u{1F1FF}\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{2300}-\u{23FF}\u{2B00}-\u{2BFF}]/gu, '')
     .replace(/[︎️‍⃣\u{1F3FB}-\u{1F3FF}]/gu, '')
     .replace(/\s{2,}/g, ' ').trim();
@@ -378,7 +447,13 @@
     if (intro) return { intro, shown: [], typing: null, header: null, sig: intro.key, animating: false };
     // Lado del turno aplicado sobre el personaje ACTUAL (sin copias guardadas).
     const withSide = (e) => (e && e.kind === 'message' && e.side && e.char && e.char.side !== e.side) ? { ...e, char: { ...e.char, side: e.side } } : e;
-    const shown = events.filter((e) => (e.kind === 'message' || e.kind === 'system') && ms >= e.visibleStart).map(withSide);
+    let shown = events.filter((e) => (e.kind === 'message' || e.kind === 'system') && ms >= e.visibleStart).map(withSide);
+    const fx = C.fx(p);
+    // Mensajes seguidos de la misma persona: la foto solo en el último (como en las apps de chat).
+    if (fx.details) shown = shown.map((e, i) => {
+      const n = shown[i + 1];
+      return e.kind === 'message' && n && n.kind === 'message' && n.char && e.char && n.char.name === e.char.name ? { ...e, hideAvatar: true } : e;
+    });
     const typing = withSide(events.find((e) => e.kind === 'message' && ms >= e.typingStart && ms < e.visibleStart) || null);
     let name = String(p.groupName || 'Chat de grupo').trim() || 'Chat de grupo';
     let count = Math.max(0, Number(p.groupMembers ?? 24) || 0);
@@ -393,21 +468,50 @@
       lastMessage = e;
       if (e.reactAt != null && ms >= e.reactAt) { reacted++; if (ms - e.reactAt < C.REACT_POP_MS + 40) animating = true; }
     }
-    if (lastMessage && ms - lastMessage.visibleStart < 360) animating = true;
-    const sig = [name, count, shown.map((e) => e.key).join(','), typing ? typing.key : '', reacted].join('|');
-    return { intro: null, shown, typing, header: { name, count }, lastMessage, sig, animating };
+    if (lastMessage && ms - lastMessage.visibleStart < (fx.smooth || p.anim === 'Rebote' ? 520 : 360)) animating = true;
+    // Quién habla: el último mensaje mientras dura (su voz o su tiempo en pantalla).
+    const speakingKey = lastMessage && ms < lastMessage.end ? lastMessage.key : null;
+    if (fx.speaker && speakingKey) animating = true;
+    // Fondo vivo: color y lado de quien habla, con transición desde el anterior.
+    let bgFx = null;
+    if (fx.bg && !p.bgImage) {
+      const msgs = shown.filter((e) => e.kind === 'message');
+      const last = msgs[msgs.length - 1], prev = msgs[msgs.length - 2];
+      if (last) {
+        const k = clamp((ms - last.visibleStart) / 700, 0, 1);
+        const to = { color: C.solidColor(last.char.color), x: last.char.side === 'left' ? 18 : 82 };
+        const from = prev ? { color: C.solidColor(prev.char.color), x: prev.char.side === 'left' ? 18 : 82 } : to;
+        const ease = k * k * (3 - 2 * k);
+        bgFx = { color: mixHex(from.color, to.color, ease), x: from.x + (to.x - from.x) * ease };
+        if (k < 1) animating = true;
+      }
+    }
+    const sig = [name, count, shown.map((e) => e.key + (e.hideAvatar ? '·' : '')).join(','), typing ? typing.key : '', reacted].join('|');
+    return { intro: null, shown, typing, header: { name, count }, lastMessage, speakingKey, bgFx, sig, animating };
   };
 
   /** Animación de entrada del último mensaje (Pop / Deslizar / Aparecer). */
-  C.messageMotion = (e, isLast, ms, anim) => {
+  C.messageMotion = (e, isLast, ms, anim, smooth) => {
     const prog = clamp((ms - e.visibleStart) / 350, 0, 1);
-    let scale = 1, tx = 0, opacity = 1;
+    let scale = 1, tx = 0, ty = 0, opacity = 1, origin = 'center center', maxHeight = null;
     if (isLast) {
       if (anim === 'Pop') scale = 0.85 + 0.15 * prog;
       if (anim === 'Deslizar') tx = (1 - prog) * (e.char && e.char.side === 'left' ? -180 : 180);
       if (anim === 'Aparecer') opacity = prog;
+      if (anim === 'Rebote') {
+        // Crece desde el lado de la foto con un pequeño rebote (easeOutBack).
+        const k = clamp((ms - e.visibleStart) / 480, 0, 1), c1 = 1.9, c3 = c1 + 1;
+        const back = 1 + c3 * Math.pow(k - 1, 3) + c1 * Math.pow(k - 1, 2);
+        scale = 0.55 + 0.45 * back; ty = (1 - k) * 40; opacity = Math.min(1, k * 3);
+        origin = (e.char && e.char.side === 'left' ? 'left' : 'right') + ' bottom';
+      }
+      // Desplazamiento suave: la fila nueva crece en altura y empuja el chat hacia arriba poco a poco.
+      if (smooth) {
+        const g = clamp((ms - e.visibleStart) / 300, 0, 1);
+        if (g < 1) maxHeight = 700 * (1 - Math.pow(1 - g, 3));
+      }
     }
-    return { transform: `translateX(${px(tx)}) scale(${scale})`, opacity: String(opacity) };
+    return { transform: `translate(${px(tx)}, ${px(ty)}) scale(${scale})`, opacity: String(opacity), origin, maxHeight };
   };
 
   /** Reacciones visibles en ms (null si todavía no) con su escala de "pop". */
@@ -464,6 +568,17 @@
   const headerSizeOf = (p) => clamp(Number(p.headerSize) || 108, 70, 220);
   const bubbleScaleOf = (c) => clamp(Number(c.bubbleSize || 100) / 100, 0.6, 3);
 
+  /** Tamaño del nombre: el elegido; con «Texto limpio», salvo que su palabra más larga no quepa bajo la foto (entonces se reduce, sin partirla). */
+  const nameFontSize = (p, c) => {
+    const size = Number(c.nameSize) || 30;
+    if (!C.fx(p).text) return size;   // sin efectos, igual que siempre
+    // Ancho aproximado en «em» de cada palabra (letras anchas, mayúsculas, estrechas y el resto), con margen.
+    const em = (w) => Array.from(w).reduce((a, ch) => a + (/[mwMW@]/.test(ch) ? 0.9 : /[A-ZÁÉÍÓÚÑ]/.test(ch) ? 0.74 : /[iljtfrI.,'!|ií]/.test(ch) ? 0.34 : 0.6), 0) * 1.08;
+    const longest = Math.max(0.6, ...String(c.name || '').split(/\s+/).map(em));
+    const fit = layoutOf(p).nameMax / longest;
+    return Math.max(14, Math.min(size, Math.floor(fit)));
+  };
+
   C.styles = {
     background: (p) => ({
       backgroundColor: p.bgColor || p.bg || C.theme(p).bg,
@@ -491,8 +606,8 @@
       const t = C.theme(p), L = layoutOf(p);
       return { position: 'absolute', left: '0px', right: '0px', top: '0px', height: px(headerSizeOf(p) + L.safeTop), paddingTop: px(L.safeTop), paddingLeft: px(L.headerPadX), paddingRight: px(L.headerPadX), display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center', boxSizing: 'border-box', background: t.headerBg, borderBottom: t.headerBorder, zIndex: '5' };
     },
-    headerName: (p) => ({ gridColumn: '2', fontFamily: C.theme(p).font, fontSize: px(34 * headerSizeOf(p) / 108), fontWeight: '800', color: C.theme(p).headerText, textAlign: 'center', maxWidth: C.isVertical(p) ? '620px' : '1400px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }),
-    headerMembers: (p) => ({ gridColumn: '3', justifySelf: 'end', fontFamily: C.theme(p).font, fontSize: px(22 * headerSizeOf(p) / 108), fontWeight: '700', color: C.theme(p).headerSub, whiteSpace: 'nowrap' }),
+    headerName: (p) => ({ gridColumn: '2', fontFamily: fontOf(p), fontSize: px(34 * headerSizeOf(p) / 108), fontWeight: '800', color: C.theme(p).headerText, textAlign: 'center', maxWidth: C.isVertical(p) ? '620px' : '1400px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }),
+    headerMembers: (p) => ({ gridColumn: '3', justifySelf: 'end', fontFamily: fontOf(p), fontSize: px(22 * headerSizeOf(p) / 108), fontWeight: '700', color: C.theme(p).headerSub, whiteSpace: 'nowrap' }),
     chatOuter: (p) => {
       const L = layoutOf(p);
       return { position: 'absolute', left: px(L.padX), right: px(L.padX), top: px(headerSizeOf(p) + L.safeTop + 20), bottom: px(L.bottom), padding: `0 ${px(L.innerX)}`, boxSizing: 'border-box', overflow: 'hidden' };
@@ -502,31 +617,73 @@
       return { position: 'absolute', left: px(L.innerX), right: px(L.innerX), bottom: '0px', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', overflow: 'visible' };
     },
     chatStack: () => ({ width: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', flexShrink: '0' }),
-    row: (p, motion) => ({ display: 'grid', gridTemplateColumns: layoutOf(p).lanes, alignItems: 'center', width: '100%', minHeight: '190px', marginBottom: '22px', position: 'relative', transform: motion ? motion.transform : 'none', opacity: motion ? motion.opacity : '1' }),
-    visual: (c) => ({ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', gridColumn: c.side === 'left' ? '1' : '3', gridRow: '1', minWidth: '0px', zIndex: '10', position: 'relative' }),
-    img: (c) => ({ width: px(c.size || 150), height: px(c.size || 150), objectFit: 'contain', objectPosition: 'center', transform: `translate(${px(c.photoX || 0)}, ${px(c.photoY || 0)})`, filter: 'drop-shadow(0 10px 16px rgba(0,0,0,.42))' }),
-    name: (p, c) => ({ fontFamily: C.theme(p).font, fontSize: px(Number(c.nameSize) || 30), fontWeight: '700', color: C.theme(p).nameColor, marginTop: '8px', textAlign: 'center', lineHeight: '1.05', maxWidth: px(layoutOf(p).nameMax), overflowWrap: 'anywhere', textShadow: '0 2px 6px rgba(0,0,0,.5)', position: 'relative', zIndex: '20' }),
+    row: (p, motion, st) => {
+      const grow = motion && motion.maxHeight != null;
+      return { display: 'grid', gridTemplateColumns: layoutOf(p).lanes, alignItems: 'center', width: '100%', minHeight: grow || (st && st.compact) ? '0px' : '190px', maxHeight: grow ? px(motion.maxHeight) : 'none', marginBottom: st && st.compact ? '12px' : '22px', position: 'relative', transform: motion ? motion.transform : 'none', transformOrigin: motion && motion.origin ? motion.origin : 'center center', opacity: motion ? motion.opacity : '1' };
+    },
+    visual: (c, st) => ({ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', gridColumn: c.side === 'left' ? '1' : '3', gridRow: '1', minWidth: '0px', zIndex: '10', position: 'relative', opacity: st && st.dim ? '0.55' : '1' }),
+    img: (c, st) => {
+      const base = { width: px(c.size || 150), height: px(c.size || 150), objectFit: 'contain', objectPosition: 'center', transform: `translate(${px(c.photoX || 0)}, ${px(c.photoY || 0)})`, filter: 'drop-shadow(0 10px 16px rgba(0,0,0,.42))' };
+      if (st && st.speaking) {
+        // Quien habla: la foto late un poco y brilla con el color de su burbuja.
+        const pulse = 1.07 + 0.03 * Math.sin((st.ms || 0) / 170);
+        base.transform += ` scale(${pulse.toFixed(4)})`;
+        base.filter = `drop-shadow(0 0 22px ${rgba(C.solidColor(c.color), 0.85)}) drop-shadow(0 10px 16px rgba(0,0,0,.42))`;
+      }
+      return base;
+    },
+    name: (p, c) => ({ fontFamily: fontOf(p), fontSize: px(nameFontSize(p, c)), fontWeight: C.fx(p).text ? '800' : '700', color: C.theme(p).nameColor, marginTop: '8px', textAlign: 'center', lineHeight: '1.05', maxWidth: px(layoutOf(p).nameMax), overflowWrap: 'anywhere', textShadow: '0 2px 6px rgba(0,0,0,.5)', position: 'relative', zIndex: '20' }),
     side: (c) => ({ display: 'flex', flexDirection: 'column', alignItems: c.side === 'left' ? 'flex-start' : 'flex-end', direction: 'ltr', transform: `translateX(${px(c.bubbleX || 0)})`, gridColumn: '2', gridRow: '1', justifySelf: c.side === 'left' ? 'start' : 'end', zIndex: '1', minWidth: '0px', maxWidth: '100%' }),
-    bubble: (p, c) => {
-      const s = bubbleScaleOf(c), t = C.theme(p);
-      const r = px(t.radius * s), tail = px(t.tail * s);
+    bubble: (p, c, st) => {
+      const s = bubbleScaleOf(c), t = C.theme(p), fx = C.fx(p);
+      const r = px(t.radius * s), tail = px((st && st.tail ? 6 : t.tail) * s);
       const left = c.side === 'left';
-      return {
-        background: c.color || t[left ? 'left' : 'right'].color, color: c.textColor || '#fff',
+      const color = c.color || t[left ? 'left' : 'right'].color;
+      const out = {
+        background: fx.tail ? `linear-gradient(180deg, rgba(255,255,255,.17), rgba(255,255,255,0) 75%), ${color}` : color, color: c.textColor || '#fff',
         padding: `${px(22 * s)} ${px(30 * s)}`,
         borderTopLeftRadius: left ? tail : r, borderTopRightRadius: left ? r : tail, borderBottomLeftRadius: r, borderBottomRightRadius: r,
         maxWidth: layoutOf(p).bubbleMax, boxSizing: 'border-box',
-        fontFamily: t.font, fontSize: px(52 * s), lineHeight: '1.12', fontWeight: t.weight,
-        WebkitTextStroke: `${px((Number(c.stroke) || 0) * s)} ${c.strokeColor || '#000'}`,
-        boxShadow: t.bubbleShadow, overflowWrap: 'anywhere', whiteSpace: 'pre-wrap',
+        fontFamily: fontOf(p), fontSize: px(52 * s), lineHeight: '1.12', fontWeight: fx.text ? '800' : t.weight,
+        WebkitTextStroke: `${px((fx.text ? 0 : Number(c.stroke) || 0) * s)} ${c.strokeColor || '#000'}`,
+        boxShadow: t.bubbleShadow, overflowWrap: 'anywhere', whiteSpace: 'pre-wrap', position: 'relative',
       };
+      if (fx.text) out.textShadow = '0 1px 3px rgba(0,0,0,.22)';
+      return out;
     },
+    /** «Colita» de la burbuja, hacia la foto de quien habla. */
+    tail: (p, c) => {
+      const s = bubbleScaleOf(c), left = c.side === 'left';
+      const col = mixHex(C.solidColor(c.color || C.theme(p)[left ? 'left' : 'right'].color), '#ffffff', 0.13);
+      return { position: 'absolute', top: px(14 * s), [left ? 'left' : 'right']: px(-11 * s), width: px(30 * s), height: px(30 * s), background: col, transform: 'rotate(45deg)', borderRadius: px(5 * s), zIndex: '-1' };
+    },
+    /** Hora y ✓✓ en la esquina de la burbuja. */
+    meta: (p, c) => {
+      const s = bubbleScaleOf(c);
+      return { display: 'block', textAlign: 'right', fontFamily: fontOf(p), fontSize: px(24 * s), fontWeight: '700', lineHeight: '1', opacity: '0.78', marginTop: px(6 * s), marginBottom: px(-8 * s), marginRight: px(-10 * s), WebkitTextStroke: '0px', textShadow: 'none', whiteSpace: 'nowrap' };
+    },
+    ticks: (c) => ({ color: c.side === 'right' ? '#53bdeb' : 'inherit', marginLeft: '0.3em', letterSpacing: '-0.25em' }),
+    /** Palabra resaltada con *asteriscos*: efecto rotulador. */
+    highlight: () => ({ background: 'rgba(255,224,102,.96)', color: '#1b1b1b', borderRadius: '.22em', padding: '0 .16em', WebkitTextStroke: '0px', textShadow: 'none', WebkitBoxDecorationBreak: 'clone', boxDecorationBreak: 'clone' }),
+    /** Fondo vivo: brillo del color de quien habla en su lado + patrón de puntos muy suave. */
+    fxBackground: (f) => ({
+      position: 'absolute', inset: '0px', zIndex: '0', pointerEvents: 'none',
+      backgroundImage: (f.bgFx ? `radial-gradient(circle at ${f.bgFx.x.toFixed(2)}% 62%, ${rgba(f.bgFx.color, 0.34)} 0%, ${rgba(f.bgFx.color, 0)} 58%), ` : '') + 'radial-gradient(rgba(255,255,255,.055) 2px, transparent 2.6px)',
+      backgroundSize: (f.bgFx ? '100% 100%, ' : '') + '46px 46px',
+    }),
+    headerLeft: () => ({ gridColumn: '1', display: 'flex', alignItems: 'center', minWidth: '0px' }),
+    headerAvatar: (p, i) => {
+      const sz = Math.round(headerSizeOf(p) * 0.6);
+      return { width: px(sz), height: px(sz), borderRadius: '50%', objectFit: 'cover', marginLeft: i ? px(-sz * 0.28) : '0px', border: '3px solid rgba(10,13,19,.95)', background: '#1b2130', boxShadow: '0 4px 10px rgba(0,0,0,.35)' };
+    },
+    headerCenter: () => ({ gridColumn: '2', display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: '0px' }),
+    headerSubtitle: (p, typing) => ({ fontFamily: fontOf(p), fontSize: px(20 * headerSizeOf(p) / 108), fontWeight: '700', color: typing ? '#6ee7a0' : C.theme(p).headerSub, marginTop: px(4 * headerSizeOf(p) / 108), maxWidth: C.isVertical(p) ? '600px' : '1300px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }),
     reactions: (p, c, st) => {
       const s = bubbleScaleOf(c), t = C.theme(p);
       return {
         display: 'flex', alignItems: 'center', gap: px(6 * s), marginTop: px(-14 * s), marginLeft: px(22 * s), marginRight: px(22 * s),
         padding: `${px(5 * s)} ${px(12 * s)}`, background: t.reactBg, color: t.reactText,
-        border: `${px(4 * s)} solid ${p.bgColor || t.bg}`, borderRadius: '999px', fontFamily: t.font,
+        border: `${px(4 * s)} solid ${p.bgColor || t.bg}`, borderRadius: '999px', fontFamily: fontOf(p),
         fontSize: px(34 * s), lineHeight: '1.1', fontWeight: '700', position: 'relative', zIndex: '2',
         transform: `scale(${st ? st.scale : 1})`, transformOrigin: c.side === 'left' ? 'left top' : 'right top',
         boxShadow: '0 4px 10px rgba(0,0,0,.25)', whiteSpace: 'nowrap',
@@ -536,10 +693,10 @@
     systemWrap: () => ({ display: 'flex', justifyContent: 'center', width: '100%', margin: '18px 0 24px' }),
     systemText: (p) => {
       const t = C.theme(p);
-      return { color: t.systemText, background: t.systemBg, padding: t.systemPad, borderRadius: '16px', fontFamily: t.font, fontSize: px(clamp(Number(p.eventSize) || 28, 14, 96)), fontWeight: '600', lineHeight: '1.3', textAlign: 'center', maxWidth: layoutOf(p).textMax, textShadow: t.systemBg === 'transparent' ? '0 2px 8px rgba(0,0,0,.35)' : 'none' };
+      return { color: t.systemText, background: t.systemBg, padding: t.systemPad, borderRadius: '16px', fontFamily: fontOf(p), fontSize: px(clamp(Number(p.eventSize) || 28, 14, 96)), fontWeight: '600', lineHeight: '1.3', textAlign: 'center', maxWidth: layoutOf(p).textMax, textShadow: t.systemBg === 'transparent' ? '0 2px 8px rgba(0,0,0,.35)' : 'none' };
     },
     typingRow: (p) => ({ display: 'grid', gridTemplateColumns: layoutOf(p).lanes, alignItems: 'center', width: '100%', marginBottom: '22px', flexShrink: '0' }),
-    typing: (p, c) => ({ gridColumn: '2', gridRow: '1', justifySelf: c.side === 'left' ? 'start' : 'end', transform: `translateX(${px(c.bubbleX || 0)})`, background: C.theme(p).typingBg, color: '#fff', borderRadius: '28px', padding: '15px 28px', fontFamily: C.theme(p).font, fontSize: '48px', letterSpacing: '8px', lineHeight: '1.12' }),
+    typing: (p, c) => ({ gridColumn: '2', gridRow: '1', justifySelf: c.side === 'left' ? 'start' : 'end', transform: `translateX(${px(c.bubbleX || 0)})`, background: C.theme(p).typingBg, color: '#fff', borderRadius: '28px', padding: '15px 28px', fontFamily: fontOf(p), fontSize: '48px', letterSpacing: '8px', lineHeight: '1.12' }),
   };
 
   root.ChatCore = C;

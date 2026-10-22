@@ -90,11 +90,13 @@ input[type=color]{width:100%;height:40px;padding:4px;background:var(--input);bor
 .timelineDetails{margin-top:10px}
 .mini{cursor:grab;user-select:none;touch-action:none;-webkit-user-drag:none}.mini:active{cursor:grabbing}
 .autoNotice{position:fixed;right:22px;bottom:22px;z-index:10000;width:min(380px,calc(100vw - 32px));background:#12161f;border:1px solid var(--accent);border-radius:16px;padding:16px 18px;box-shadow:0 20px 60px rgba(0,0,0,.55);display:none}.autoNotice.on{display:block;animation:autoIn .25s ease-out}.autoNotice b{display:block;font-size:15px;margin-bottom:4px}.autoNotice .small{margin-bottom:10px}.autoNotice .row{margin-top:10px}@keyframes autoIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+.fxBox{border:1px solid var(--line);background:#0f141c;border-radius:12px;padding:12px;margin-top:10px}.fxBox .check{margin:0 0 7px}
 .progress{height:9px;background:#252c39;border-radius:9px;overflow:hidden;margin-top:6px}.progress>i{display:block;width:0%;height:100%;background:var(--accent);transition:width .2s}
 .check{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--muted);margin:-3px 0 10px}.check input{width:auto}
 .timelineDetails>summary{font-size:12px;padding:9px 11px}
 .projectHome{position:fixed;inset:0;z-index:9999;background:#0b0d12;display:flex;align-items:center;justify-content:center;padding:30px}.projectHome.hidden{display:none}.projectBox{width:min(1100px,100%);max-height:90vh;overflow:auto;background:#12161f;border:1px solid #252c39;border-radius:24px;padding:28px;box-shadow:0 30px 100px rgba(0,0,0,.45)}.projectTitle{font-size:28px;font-weight:950}.projectSub{color:#8e99aa;font-size:13px;margin:6px 0 24px}.projectCreate{display:flex;gap:10px;max-width:620px}.projectCreate input{flex:1}.projectGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px;margin-top:12px}.projectCard{background:#10151e;border:1px solid #293140;border-radius:16px;padding:16px}.projectCard b{display:block;margin-bottom:7px}.projectCard .small{margin-bottom:12px}.projectEmpty{padding:28px;border:1px dashed #303847;border-radius:15px;color:#8e99aa;text-align:center;grid-column:1/-1}@media(max-width:650px){.projectHome{padding:14px}.projectBox{padding:18px}.projectCreate{flex-direction:column}}
 </style>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&display=swap">
 </head>
 <body><div id="projectHome" class="projectHome"><div class="projectBox"><div class="projectTitle">Chat Video Maker</div><div class="projectSub">Selecciona un proyecto o crea uno nuevo. Cada proyecto tendrá sus propios audios, configuración y vídeo.</div><div class="projectCreate"><input id="newProjectName" type="text" placeholder="Nombre del nuevo proyecto"><button id="createProject" class="btn primary">＋ Crear proyecto</button></div><div style="height:22px"></div><div style="font-size:16px;font-weight:900">Proyectos actuales</div><div id="projectList" class="projectGrid"><div class="projectEmpty">Cargando proyectos…</div></div></div></div><div class="app" id="editorApp" style="display:none">
 <div class="top">
@@ -117,6 +119,17 @@ input[type=color]{width:100%;height:40px;padding:4px;background:var(--input);bor
   <div class="field"><label>Tamaño de la cabecera (px)</label><input id="headerSize" type="number" value="108" min="70" max="220" step="1"></div>
 </div>
 <div class="hint">Los eventos del guion como «Juan sacó a Pepe del grupo», «Luis se unió al grupo» o «María cambió el título del grupo a …» actualizan la cabecera automáticamente.</div>
+<div class="fxBox">
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><b style="flex:1">✨ Efectos visuales</b><button class="btn" id="fxAll" style="padding:6px 10px">Activar todos</button><button class="btn" id="fxNone" style="padding:6px 10px">Quitar todos</button></div>
+  <label class="check"><input type="checkbox" data-fx="text"> Texto limpio: sin contorno, letra redondeada (Nunito)</label>
+  <label class="check"><input type="checkbox" data-fx="tail"> Burbujas con colita hacia la foto y degradado suave</label>
+  <label class="check"><input type="checkbox" data-fx="bg"> Fondo vivo: brillo del color de quien habla + patrón suave (si no hay foto de fondo)</label>
+  <label class="check"><input type="checkbox" data-fx="speaker"> Resaltar a quien habla: su foto late y brilla, las demás se atenúan</label>
+  <label class="check"><input type="checkbox" data-fx="header"> Cabecera con fotos del grupo y «… está escribiendo»</label>
+  <label class="check"><input type="checkbox" data-fx="details"> Hora y ✓✓ en las burbujas · foto solo en el último mensaje seguido</label>
+  <label class="check"><input type="checkbox" data-fx="smooth"> Desplazamiento suave del chat al entrar cada mensaje</label>
+  <div class="row" style="margin-top:4px"><div class="field" style="flex:0 0 150px"><label>Hora del chat</label><input id="fxClock" type="time" value="21:14"></div><div class="field"><div class="hint" style="margin-top:18px">Resalta palabras escribiéndolas entre asteriscos: <b>Pepe: no encuentro mi *cargador*</b>. La animación «Rebote» está en 03.</div></div></div>
+</div>
 </div></details>
 
 <details class="sectionDetails" open>
@@ -156,7 +169,7 @@ input[type=color]{width:100%;height:40px;padding:4px;background:var(--input);bor
 <div class="small" id="scriptWarn"></div>
 <div class="row"><div class="field"><label>Espera antes</label><input id="delay" type="number" value=".3" step=".1"></div><div class="field"><label>Escribiendo</label><input id="typing" type="number" value=".5" step=".1"></div><div class="field"><label>Visible</label><input id="duration" type="number" value="2.2" step=".1"></div></div>
 <div class="row"><div class="field"><label>Lado de las burbujas</label><select id="sideMode"><option value="alternate">Alternar al cambiar de personaje</option><option value="fixed">Fijo: el lado de cada personaje</option></select></div></div>
-<div class="row"><div class="field"><label>Animación</label><select id="anim"><option>Pop</option><option>Deslizar</option><option>Aparecer</option></select></div><div class="field"><label>FPS exportación</label><select id="fps"><option>30</option><option>60</option></select></div></div>
+<div class="row"><div class="field"><label>Animación</label><select id="anim"><option>Rebote</option><option>Pop</option><option>Deslizar</option><option>Aparecer</option></select></div><div class="field"><label>FPS exportación</label><select id="fps"><option>30</option><option>60</option></select></div></div>
 <div class="row"><div class="field"><label>Color de fondo</label><input id="bg" type="color" value="#11131a"></div><div class="field"><label>Ajuste de foto</label><select id="bgFit"><option value="cover">Cubrir · llena toda la pantalla</option><option value="contain">Encajar · muestra toda la foto</option></select></div></div>
 <div class="row"><label class="btn">🖼️ Foto de fondo<input class="file" id="bgFile" type="file" accept="image/*"></label><button class="btn" id="bgRemove" disabled>✕ Quitar foto de fondo</button></div>
 <div class="small" id="bgStatus">Sin foto de fondo. Puedes usar solo un color o añadir una imagen.</div>
@@ -231,7 +244,7 @@ input[type=color]{width:100%;height:40px;padding:4px;background:var(--input);bor
 "use strict";
 const $=id=>document.getElementById(id);
 const C=window.ChatCore;
-const state={projectSlug:"",projectName:"",loaded:false,groupName:"Chat de grupo",groupMembers:24,headerSize:108,initialTitle:"",initialTitleAudio:null,initialTitleAudioCacheKey:"",initialTitleDuration:0,titleAudios:[],initialTitleFont:"Arial",initialTitleSize:72,initialTitleColor:"#ffffff",initialTitleStrokeColor:"#000000",initialTitleStroke:0,eventSize:28,theme:"clasico",library:[],voices:[],music:null,musicName:"",musicVolume:25,musicDuck:8,musicEl:null,groupEvents:[],chars:{},selected:null,bgColor:"#11131a",bgImage:null,bgFit:"cover",sound:null,dialogueMessages:[],playing:false,raf:0,audioCtx:null,audioBuffer:null,audioSources:[],players:[],lastProject:null};
+const state={projectSlug:"",projectName:"",loaded:false,groupName:"Chat de grupo",groupMembers:24,headerSize:108,initialTitle:"",initialTitleAudio:null,initialTitleAudioCacheKey:"",initialTitleDuration:0,titleAudios:[],fx:{...C.FX_ALL},initialTitleFont:"Arial",initialTitleSize:72,initialTitleColor:"#ffffff",initialTitleStrokeColor:"#000000",initialTitleStroke:0,eventSize:28,theme:"clasico",library:[],voices:[],music:null,musicName:"",musicVolume:25,musicDuck:8,musicEl:null,groupEvents:[],chars:{},selected:null,bgColor:"#11131a",bgImage:null,bgFit:"cover",sound:null,dialogueMessages:[],playing:false,raf:0,audioCtx:null,audioBuffer:null,audioSources:[],players:[],lastProject:null};
 const demo={a:{name:"Real Madrid",side:"right",color:"#39c96b",textColor:"#fff",strokeColor:"#000",stroke:2,size:150,photoX:0,photoY:0,bubbleX:0,bubbleSize:150,nameSize:45,image:""},
 b:{name:"Barcelona",side:"left",color:"#ff5d83",textColor:"#fff",strokeColor:"#000",stroke:2,size:150,photoX:0,photoY:0,bubbleX:0,bubbleSize:150,nameSize:45,image:""}};
 function escapeHtml(v){return String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]))}
@@ -421,7 +434,7 @@ $("clearGroupEvents").onclick=()=>{state.groupEvents=state.groupEvents.filter(e=
 
 /* ───────── Proyecto y línea de tiempo ───────── */
 let events=[],cues=[],totalMs=0,currentTime=0;
-function project(){const res=$("resolution")?.value||"1920x1080";const [videoWidth,videoHeight]=res.split("x").map(Number);return{projectSlug:state.projectSlug||"",projectName:state.projectName||"",videoWidth,videoHeight,groupName:state.groupName,groupMembers:state.groupMembers,headerSize:state.headerSize,initialTitle:state.initialTitle,initialTitleAudio:state.initialTitleAudio,initialTitleAudioCacheKey:state.initialTitleAudioCacheKey||"",initialTitleDuration:state.initialTitleDuration,titleAudios:state.titleAudios,initialTitleFont:state.initialTitleFont,initialTitleSize:state.initialTitleSize,initialTitleColor:state.initialTitleColor,initialTitleStrokeColor:state.initialTitleStrokeColor,initialTitleStroke:state.initialTitleStroke,eventSize:state.eventSize,groupEvents:state.groupEvents,chars:Object.values(state.chars),script:$("script").value,delay:+$("delay").value||0,typing:+$("typing").value||0,duration:+$("duration").value||2.2,anim:$("anim").value,sideMode:$("sideMode").value,bg:state.bgColor,bgColor:state.bgColor,bgImage:state.bgImage,bgFit:state.bgFit,fps:+$("fps").value||30,sound:state.sound,music:state.music,musicName:state.musicName||"",musicVolume:state.musicVolume,musicDuck:state.musicDuck,dialogueMessages:state.dialogueMessages,popupDelay:0.35,theme:state.theme||"clasico",renderSpeed:$("renderSpeed").value}}
+function project(){const res=$("resolution")?.value||"1920x1080";const [videoWidth,videoHeight]=res.split("x").map(Number);return{projectSlug:state.projectSlug||"",projectName:state.projectName||"",videoWidth,videoHeight,groupName:state.groupName,groupMembers:state.groupMembers,headerSize:state.headerSize,initialTitle:state.initialTitle,initialTitleAudio:state.initialTitleAudio,initialTitleAudioCacheKey:state.initialTitleAudioCacheKey||"",initialTitleDuration:state.initialTitleDuration,titleAudios:state.titleAudios,fx:{...state.fx},initialTitleFont:state.initialTitleFont,initialTitleSize:state.initialTitleSize,initialTitleColor:state.initialTitleColor,initialTitleStrokeColor:state.initialTitleStrokeColor,initialTitleStroke:state.initialTitleStroke,eventSize:state.eventSize,groupEvents:state.groupEvents,chars:Object.values(state.chars),script:$("script").value,delay:+$("delay").value||0,typing:+$("typing").value||0,duration:+$("duration").value||2.2,anim:$("anim").value,sideMode:$("sideMode").value,bg:state.bgColor,bgColor:state.bgColor,bgImage:state.bgImage,bgFit:state.bgFit,fps:+$("fps").value||30,sound:state.sound,music:state.music,musicName:state.musicName||"",musicVolume:state.musicVolume,musicDuck:state.musicDuck,dialogueMessages:state.dialogueMessages,popupDelay:0.35,theme:state.theme||"clasico",renderSpeed:$("renderSpeed").value}}
 function buildTimeline(){
   syncScriptState();
   state.lastProject=project();
@@ -464,13 +477,22 @@ function renderAt(ms,force=true,save=force){
   canvas.replaceChildren();
   if(f.intro){const w=h("div",C.styles.introWrap(p));w.append(h("div",C.styles.introText(p),f.intro.text));canvas.append(w)}
   else{
-    const hd=h("div",C.styles.header(p));hd.append(h("div"),h("div",C.styles.headerName(p),f.header.name),h("div",C.styles.headerMembers(p),C.membersLabel(f.header.count)));
+    if(C.fx(p).bg&&!p.bgImage)canvas.append(h("div",C.styles.fxBackground(f)));
+    const hd=h("div",C.styles.header(p)),hx=C.headerExtras(p,f);
+    if(hx){const left=h("div",C.styles.headerLeft());hx.avatars.forEach((src,i)=>{const a=h("img",C.styles.headerAvatar(p,i));a.src=src;left.append(a)});
+      const mid=h("div",C.styles.headerCenter());mid.append(h("div",C.styles.headerName(p),f.header.name),h("div",C.styles.headerSubtitle(p,hx.typing),hx.subtitle));
+      hd.append(left,mid,h("div",C.styles.headerMembers(p),C.membersLabel(f.header.count)))}
+    else hd.append(h("div"),h("div",C.styles.headerName(p),f.header.name),h("div",C.styles.headerMembers(p),C.membersLabel(f.header.count)));
     const outer=h("div",C.styles.chatOuter(p)),inner=h("div",C.styles.chatInner(p)),stack=h("div",C.styles.chatStack());
     for(const e of f.shown){
       if(e.kind==="system"){const w=h("div",C.styles.systemWrap());w.append(h("div",C.styles.systemText(p),C.systemText(e.text,p)));stack.append(w);continue}
-      const c=e.char,row=h("div",C.styles.row(p,C.messageMotion(e,e===f.lastMessage,ms,p.anim)));
-      const vis=h("div",C.styles.visual(c));const im=h("img",C.styles.img(c));im.className="mini";im.dataset.char=c.name;im.draggable=false;im.src=c.image||C.BLANK_IMG;vis.append(im,h("div",C.styles.name(p,c),c.name));
-      const side=h("div",C.styles.side(c));side.append(h("div",C.styles.bubble(p,c),e.text));
+      const c=e.char,st=C.rowState(p,f,e,ms),row=h("div",C.styles.row(p,C.messageMotion(e,e===f.lastMessage,ms,p.anim,C.fx(p).smooth),st));
+      const vis=h("div",C.styles.visual(c,st));if(!st.compact){const im=h("img",C.styles.img(c,st));im.className="mini";im.dataset.char=c.name;im.draggable=false;im.src=c.image||C.BLANK_IMG;vis.append(im,h("div",C.styles.name(p,c),c.name))}
+      const bub=h("div",C.styles.bubble(p,c,st));
+      if(st.tail)bub.append(h("div",C.styles.tail(p,c)));
+      C.richText(e.text).forEach(seg=>bub.append(seg.hi?h("span",C.styles.highlight(),seg.t):document.createTextNode(seg.t)));
+      if(st.meta){const m=h("span",C.styles.meta(p,c),st.meta);m.append(h("span",C.styles.ticks(c),"✓✓"));bub.append(m)}
+      const side=h("div",C.styles.side(c));side.append(bub);
       const rs=C.reactionState(e,ms);
       if(rs){const pill=h("div",C.styles.reactions(p,c,rs));e.reactions.forEach(r=>{const sp=h("span",null,r.emoji);if(r.count>1)sp.append(h("span",C.styles.reactionCount(c),String(r.count)));pill.append(sp)});side.append(pill)}
       row.append(vis,side);stack.append(row);
@@ -585,6 +607,13 @@ $("generateEventAudio").onclick=async()=>{
 $("ai33Clear").onclick=()=>{state.dialogueMessages=[];buildTimeline();renderAt(currentTime);$("ai33Status").textContent="Sin audios de AI33 asignados (los archivos siguen en la carpeta del proyecto y se reutilizarán).";$("ai33ProgressWrap").style.display="none"};
 $("ai33Folder").onclick=async()=>{try{const j=await postJSON("/ai33/open-folder",{projectSlug:state.projectSlug});$("ai33Status").textContent="📁 Carpeta: "+j.path}catch(e){$("ai33Status").textContent="No se pudo abrir la carpeta: "+e.message}};
 
+/* ───────── Efectos visuales ───────── */
+function syncFx(){document.querySelectorAll("[data-fx]").forEach(b=>b.checked=!!state.fx[b.dataset.fx]);$("fxClock").value=state.fx.clock||"21:14"}
+document.querySelectorAll("[data-fx]").forEach(b=>b.onchange=()=>{state.fx[b.dataset.fx]=b.checked;renderAt(currentTime)});
+$("fxClock").oninput=()=>{state.fx.clock=$("fxClock").value||"21:14";renderAt(currentTime)};
+$("fxAll").onclick=()=>{state.fx={...C.FX_ALL,clock:state.fx.clock||"21:14"};syncFx();renderAt(currentTime)};
+$("fxNone").onclick=()=>{state.fx={...C.FX_NONE,clock:state.fx.clock||"21:14"};syncFx();renderAt(currentTime)};
+
 /* ───────── Aviso al terminar los audios → MP4 automático ───────── */
 const AUTO_RENDER_SECS=10,AUTO_RENDER_STORE="chatVideoMaker.autoRender";
 let autoTimer=0,autoEnd=0,baseTitle=document.title;
@@ -652,6 +681,8 @@ function applyProjectData(rp){
   state.headerSize=Number(rp.headerSize)||108;state.eventSize=Number(rp.eventSize)||28;
   if(rp.initialTitle!=null)state.initialTitle=String(rp.initialTitle);
   state.initialTitleAudio=rp.initialTitleAudio||null;state.initialTitleAudioCacheKey=rp.initialTitleAudioCacheKey||"";state.initialTitleDuration=Number(rp.initialTitleDuration)||0;state.titleAudios=Array.isArray(rp.titleAudios)?rp.titleAudios:[];
+  // Efectos visuales: los proyectos nuevos los traen activados; los antiguos (ya con personajes) siguen como estaban.
+  const isNew=!(Array.isArray(rp.chars)&&rp.chars.length);state.fx=rp.fx?{...C.FX_NONE,...rp.fx}:{...(isNew?C.FX_ALL:C.FX_NONE)};if(isNew&&!rp.anim)$("anim").value="Rebote";syncFx();
   state.initialTitleFont=rp.initialTitleFont||"Arial";state.initialTitleSize=Number(rp.initialTitleSize)||72;state.initialTitleColor=rp.initialTitleColor||"#ffffff";state.initialTitleStrokeColor=rp.initialTitleStrokeColor||"#000000";state.initialTitleStroke=Number(rp.initialTitleStroke)||0;
   if(Array.isArray(rp.groupEvents))state.groupEvents=rp.groupEvents;
   if(Array.isArray(rp.chars)&&rp.chars.length){state.chars={};rp.chars.forEach((c,i)=>state.chars["c"+i]={bubbleSize:100,...c});state.selected=Object.keys(state.chars)[0]||null}

@@ -1,5 +1,5 @@
 import React from 'react';
-import {Composition, Img, Sequence, AbsoluteFill, useCurrentFrame, useVideoConfig, registerRoot, staticFile} from 'remotion';
+import {Composition, Img, Sequence, AbsoluteFill, useCurrentFrame, useVideoConfig, registerRoot, staticFile, delayRender, continueRender} from 'remotion';
 import {Audio} from '@remotion/media';
 // Núcleo compartido con la vista previa: guion, línea de tiempo, plantillas y estilos.
 import '../shared/chatcore.js';
@@ -17,17 +17,45 @@ const asset = (src?: string | null): string | undefined => {
   return staticFile(src.replace(/\\/g, '/').replace(/^\/+/, ''));
 };
 
-const Message: React.FC<{p: Project; e: any; isLast: boolean; ms: number}> = ({p, e, isLast, ms}) => {
+/** Carga la letra Nunito («Texto limpio») antes de renderizar; si no hay internet, sigue con la de respaldo. */
+const FontLoader: React.FC = () => {
+  const [handle] = React.useState(() => delayRender('Cargando tipografía'));
+  React.useEffect(() => {
+    let done = false;
+    const finish = () => { if (!done) { done = true; continueRender(handle); } };
+    const timer = setTimeout(finish, 5000);
+    const link = document.createElement('link');
+    link.rel = 'stylesheet'; link.href = C.FX_FONT_URL;
+    link.onload = () => {
+      const fonts = (document as any).fonts;
+      Promise.all(['700', '800', '900'].map((w) => fonts.load(`${w} 52px Nunito`))).catch(() => null).finally(() => { clearTimeout(timer); finish(); });
+    };
+    link.onerror = () => { clearTimeout(timer); finish(); };
+    document.head.appendChild(link);
+  }, [handle]);
+  return null;
+};
+
+const Message: React.FC<{p: Project; f: any; e: any; isLast: boolean; ms: number}> = ({p, f, e, isLast, ms}) => {
   const c = e.char;
   const react = C.reactionState(e, ms);
+  const st = C.rowState(p, f, e, ms);
   return (
-    <div style={C.styles.row(p, C.messageMotion(e, isLast, ms, p.anim))}>
-      <div style={C.styles.visual(c)}>
-        <Img src={asset(c.image) || C.BLANK_IMG} style={C.styles.img(c)} />
-        <div style={C.styles.name(p, c)}>{c.name}</div>
+    <div style={C.styles.row(p, C.messageMotion(e, isLast, ms, p.anim, C.fx(p).smooth), st)}>
+      <div style={C.styles.visual(c, st)}>
+        {st.compact ? null : (
+          <>
+            <Img src={asset(c.image) || C.BLANK_IMG} style={C.styles.img(c, st)} />
+            <div style={C.styles.name(p, c)}>{c.name}</div>
+          </>
+        )}
       </div>
       <div style={C.styles.side(c)}>
-        <div style={C.styles.bubble(p, c)}>{e.text}</div>
+        <div style={C.styles.bubble(p, c, st)}>
+          {st.tail ? <div style={C.styles.tail(p, c)} /> : null}
+          {C.richText(e.text).map((seg: any, i: number) => (seg.hi ? <span key={i} style={C.styles.highlight()}>{seg.t}</span> : <React.Fragment key={i}>{seg.t}</React.Fragment>))}
+          {st.meta ? <span style={C.styles.meta(p, c)}>{st.meta}<span style={C.styles.ticks(c)}>✓✓</span></span> : null}
+        </div>
         {react && (
           <div style={C.styles.reactions(p, c, react)}>
             {e.reactions.map((r: any, i: number) => (
@@ -45,6 +73,7 @@ const ChatFrame: React.FC<{project: Project; events: any[]; ms: number}> = ({pro
   const {width} = useVideoConfig();
   const f = C.frameAt(project, events, ms);
   const scale = width / C.canvasSize(project).w;
+  const hx = f.intro ? null : C.headerExtras(project, f);
   return (
     <AbsoluteFill style={C.styles.background({...project, __bgUrl: asset(project.bgImage)})}>
       <div style={C.styles.canvas(project, scale)}>
@@ -54,9 +83,24 @@ const ChatFrame: React.FC<{project: Project; events: any[]; ms: number}> = ({pro
           </div>
         ) : (
           <>
+            {C.fx(project).bg && !project.bgImage ? <div style={C.styles.fxBackground(f)} /> : null}
             <div style={C.styles.header(project)}>
-              <div />
-              <div style={C.styles.headerName(project)}>{f.header.name}</div>
+              {hx ? (
+                <>
+                  <div style={C.styles.headerLeft()}>
+                    {hx.avatars.map((src: string, i: number) => <Img key={i} src={asset(src)!} style={C.styles.headerAvatar(project, i)} />)}
+                  </div>
+                  <div style={C.styles.headerCenter()}>
+                    <div style={C.styles.headerName(project)}>{f.header.name}</div>
+                    <div style={C.styles.headerSubtitle(project, hx.typing)}>{hx.subtitle}</div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div />
+                  <div style={C.styles.headerName(project)}>{f.header.name}</div>
+                </>
+              )}
               <div style={C.styles.headerMembers(project)}>{C.membersLabel(f.header.count)}</div>
             </div>
             <div style={C.styles.chatOuter(project)}>
@@ -68,7 +112,7 @@ const ChatFrame: React.FC<{project: Project; events: any[]; ms: number}> = ({pro
                         <div style={C.styles.systemText(project)}>{C.systemText(e.text, project)}</div>
                       </div>
                     ) : (
-                      <Message key={e.key} p={project} e={e} isLast={e === f.lastMessage} ms={ms} />
+                      <Message key={e.key} p={project} f={f} e={e} isLast={e === f.lastMessage} ms={ms} />
                     )
                   )}
                   {f.typing && (
@@ -100,6 +144,7 @@ const ChatVideo: React.FC<Project> = (project) => {
 
   return (
     <AbsoluteFill>
+      {C.fx(project).text ? <FontLoader /> : null}
       <ChatFrame project={project} events={events} ms={ms} />
       {music ? (
         // Música de fondo: en bucle todo el vídeo; baja mientras suenan las voces (ducking).

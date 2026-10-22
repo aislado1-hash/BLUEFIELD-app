@@ -27,7 +27,7 @@ RENDER_LOCK = threading.Lock()
 
 def strip_emojis_for_tts(text):
     """Quita emojis solo del texto que se envía a AI33; el guion visual no cambia."""
-    s = str(text or "")
+    s = str(text or "").replace("*", "")   # *palabra* = resaltado visual; no se lee
     s = re.sub(r"[\U0001F1E6-\U0001F1FF\U0001F300-\U0001FAFF☀-➿⌀-⏿⬀-⯿]", "", s)
     s = re.sub(r"[︎️‍⃣\U0001F3FB-\U0001F3FF]", "", s)
     return re.sub(r"\s{2,}", " ", s).strip()
