@@ -36,6 +36,28 @@ const FontLoader: React.FC = () => {
   return null;
 };
 
+/** Texto con *palabras* resaltadas. */
+const Rich: React.FC<{text: string}> = ({text}) => (
+  <>{C.richText(text).map((seg: any, i: number) => (seg.hi ? <span key={i} style={C.styles.highlight()}>{seg.t}</span> : <React.Fragment key={i}>{seg.t}</React.Fragment>))}</>
+);
+
+/** Nota de voz: botón ▶/⏸, onda que se rellena mientras suena, tiempo y (opcional) transcripción. */
+const VoiceNote: React.FC<{p: Project; e: any; c: any; ms: number}> = ({p, e, c, ms}) => {
+  const vn = C.voiceNote(p, e, ms);
+  return (
+    <>
+      <div style={C.styles.vnWrap(c)}>
+        <div style={C.styles.vnButton(c)}>
+          {vn.playing ? (<><div style={C.styles.vnPauseBar(c)} /><div style={C.styles.vnPauseBar(c)} /></>) : <div style={C.styles.vnPlay(c)} />}
+        </div>
+        <div style={C.styles.vnBars(c)}>{vn.bars.map((b: any, i: number) => <div key={i} style={C.styles.vnBar(c, b)} />)}</div>
+        <div style={C.styles.vnTime(p, c)}>{vn.time}</div>
+      </div>
+      {e.voiceNote === 'transcript' ? <div style={C.styles.vnTranscript(p, c)}><Rich text={e.text} /></div> : null}
+    </>
+  );
+};
+
 const Message: React.FC<{p: Project; f: any; e: any; isLast: boolean; ms: number}> = ({p, f, e, isLast, ms}) => {
   const c = e.char;
   const react = C.reactionState(e, ms);
@@ -53,7 +75,7 @@ const Message: React.FC<{p: Project; f: any; e: any; isLast: boolean; ms: number
       <div style={C.styles.side(c)}>
         <div style={C.styles.bubble(p, c, st)}>
           {st.tail ? <div style={C.styles.tail(p, c)} /> : null}
-          {C.richText(e.text).map((seg: any, i: number) => (seg.hi ? <span key={i} style={C.styles.highlight()}>{seg.t}</span> : <React.Fragment key={i}>{seg.t}</React.Fragment>))}
+          {e.voiceNote ? <VoiceNote p={p} e={e} c={c} ms={ms} /> : <Rich text={e.text} />}
           {st.meta ? <span style={C.styles.meta(p, c)}>{st.meta}<span style={C.styles.ticks(c)}>✓✓</span></span> : null}
         </div>
         {react && (
@@ -117,7 +139,7 @@ const ChatFrame: React.FC<{project: Project; events: any[]; ms: number}> = ({pro
                   )}
                   {f.typing && (
                     <div style={C.styles.typingRow(project)}>
-                      <div style={C.styles.typing(project, f.typing.char)}>•••</div>
+                      <div style={C.styles.typing(project, f.typing.char, f.typing)}>{C.typingLabel(f.typing)}</div>
                     </div>
                   )}
                 </div>

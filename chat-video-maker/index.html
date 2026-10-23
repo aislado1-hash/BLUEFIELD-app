@@ -162,7 +162,7 @@ input[type=color]{width:100%;height:40px;padding:4px;background:var(--input);bor
 <details class="sectionDetails">
 <summary>02 · Conversación</summary>
 <div class="sectionBody">
-<div class="hint">Una línea por mensaje: <b>Nombre: texto</b>. Extras: <b>Titulo inicial: "…"</b> al principio y <b>Titulo inicial 2: "…"</b>, <b>Titulo inicial 3: "…"</b>… en cualquier punto del guion · <b>evento: Juan sacó a Pepe del grupo</b> · reacciones al final de un mensaje: <b>Pepe: Golazo {r: 😂3 🔥 💀}</b> (el número es cuántas personas reaccionan).</div>
+<div class="hint">Una línea por mensaje: <b>Nombre: texto</b>. Extras: <b>Titulo inicial: "…"</b> al principio y <b>Titulo inicial 2: "…"</b>, <b>Titulo inicial 3: "…"</b>… en cualquier punto del guion · <b>evento: Juan sacó a Pepe del grupo</b> · reacciones al final de un mensaje: <b>Pepe: Golazo {r: 😂3 🔥 💀}</b> · nota de voz: <b>Pepe: [audio] texto</b> (con transcripción) o <b>[audio-solo]</b> (el número es cuántas personas reaccionan).</div>
 <div class="row"><div class="field"><label>Tipografía del título inicial</label><select id="initialTitleFont"><option value="Arial">Arial</option><option value="Georgia">Georgia</option><option value="Verdana">Verdana</option><option value="Trebuchet MS">Trebuchet MS</option><option value="Courier New">Courier New</option><option value="Impact">Impact</option></select></div><div class="field"><label>Tamaño del título</label><input id="initialTitleSize" type="number" min="20" max="180" step="1" value="72"></div></div>
 <div class="row"><div class="field"><label>Color del título</label><input id="initialTitleColor" type="color" value="#ffffff"></div><div class="field"><label>Color del trazo</label><input id="initialTitleStrokeColor" type="color" value="#000000"></div><div class="field"><label>Tamaño de trazo</label><input id="initialTitleStroke" type="number" min="0" max="20" step="0.5" value="0"></div></div>
 <textarea id="script"></textarea>
@@ -227,7 +227,8 @@ input[type=color]{width:100%;height:40px;padding:4px;background:var(--input);bor
 </select></div><div class="field" style="flex:0 0 170px"><label>Velocidad de render</label><select id="renderSpeed"><option value="rapido">Rápido</option><option value="equilibrado">Equilibrado</option><option value="calidad">Máxima calidad</option></select></div></div>
 <label class="check"><input type="checkbox" id="autoFit" checked> Ajuste automático en vertical: burbujas, fotos y nombres se adaptan para que no quede comprimido</label>
 <div class="hint" style="margin:-4px 0 10px">En vertical se dejan márgenes arriba y abajo para que la interfaz de TikTok/Reels no tape el chat.</div>
-<div class="row"><button class="btn primary" id="render">🎬 Generar MP4</button></div>
+<div class="row"><button class="btn primary" id="generateAll" title="Voces de los mensajes, audios de eventos y títulos, y MP4, seguidos">🚀 Generar todo</button><button class="btn" id="render">🎬 Generar MP4</button></div>
+<div class="hint" style="margin:-4px 0 8px">«Generar todo» crea solo los audios que falten (mensajes, eventos y títulos) y después el MP4, sin pasos intermedios.</div>
 <label class="check"><input type="checkbox" id="autoRender" checked> Al terminar de generar los audios, avisar y generar el MP4 automáticamente en 10 s</label>
 <div class="status" id="status">Listo.</div><div id="renderProgressWrap" style="display:none;margin-top:8px"><div style="display:flex;justify-content:space-between;gap:10px;font-size:12px;color:#aab4c2"><span id="renderProgressText">Preparando…</span><b id="renderProgressPct">0%</b></div><div class="progress"><i id="renderProgressBar"></i></div></div><div id="download"></div>
 </div></details>
@@ -451,7 +452,7 @@ function buildTimeline(){
     if(e.kind==="message"){cues.push({t:e.visibleStart,pop:true,short:!!e.audio});if(e.audio)cues.push({t:e.visibleStart+popup,audio:e.audio})}
   }
   const tl=$("timeline");$("timelineMeta").textContent=`${(totalMs/1000).toFixed(2)} s`;tl.innerHTML="";
-  events.forEach((e,i)=>{const row=document.createElement("div");row.className="trow "+(e.kind==="system"?"systemRow":e.kind==="intro"?"introRow":"");row.id="tr"+i;const dur=e.audioDuration?e.audioDuration.toFixed(2)+"s":e.audioMissing?'<span class="noVoice">⚠ sin voz</span>':"";const label=e.kind==="system"?"⚙ Evento":e.kind==="intro"?"🎬 "+escapeHtml(e.label||"Título inicial"):escapeHtml(e.char.name);row.innerHTML=`<span class="tbadge">${(e.start/1000).toFixed(1)}s</span><b>${label}</b><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(e.text)}</span><span>${dur}</span>`;tl.append(row)});
+  events.forEach((e,i)=>{const row=document.createElement("div");row.className="trow "+(e.kind==="system"?"systemRow":e.kind==="intro"?"introRow":"");row.id="tr"+i;const dur=e.audioDuration?e.audioDuration.toFixed(2)+"s":e.audioMissing?'<span class="noVoice">⚠ sin voz</span>':"";const label=e.kind==="system"?"⚙ Evento":e.kind==="intro"?"🎬 "+escapeHtml(e.label||"Título inicial"):escapeHtml(e.char.name);row.innerHTML=`<span class="tbadge">${(e.start/1000).toFixed(1)}s</span><b>${label}</b><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e.voiceNote?"🎤 ":""}${escapeHtml(e.text)}</span><span>${dur}</span>`;tl.append(row)});
   tl.querySelectorAll(".trow").forEach((row,i)=>row.onclick=()=>{const e=events[i];seek(e.kind==="message"?Math.min(e.end-1,e.visibleStart+400):e.visibleStart+200)});
   const sk=$("seek");sk.max=Math.max(1,Math.round(totalMs));$("seekTotal").textContent=(totalMs/1000).toFixed(1)+" s";
   const unknown=r.parsed.unknownNames,warns=[];
@@ -459,6 +460,7 @@ function buildTimeline(){
   if(r.missingAudio)warns.push(`⚠ ${r.missingAudio} ${r.missingAudio===1?"mensaje ha cambiado y no tiene":"mensajes han cambiado y no tienen"} voz. Pulsa «Generar voces»: solo se generan los que faltan.`);
   $("scriptWarn").innerHTML=warns.map(w=>`<div class="warn">${w}</div>`).join("");
   if($("createFromScript"))$("createFromScript").onclick=()=>createCharactersFromScript(false);
+  if(events.some(e=>e.voiceNote&&e.audio&&!Array.isArray(e.peaks)))schedulePeaks();
     lastSig="";scheduleSave();
 }
 
@@ -492,14 +494,20 @@ function renderAt(ms,force=true,save=force){
       const vis=h("div",C.styles.visual(c,st));if(!st.compact){const im=h("img",C.styles.img(c,st));im.className="mini";im.dataset.char=c.name;im.draggable=false;im.src=c.image||C.BLANK_IMG;vis.append(im,h("div",C.styles.name(p,c),c.name))}
       const bub=h("div",C.styles.bubble(p,c,st));
       if(st.tail)bub.append(h("div",C.styles.tail(p,c)));
-      C.richText(e.text).forEach(seg=>bub.append(seg.hi?h("span",C.styles.highlight(),seg.t):document.createTextNode(seg.t)));
+      const rich=box=>C.richText(e.text).forEach(seg=>box.append(seg.hi?h("span",C.styles.highlight(),seg.t):document.createTextNode(seg.t)));
+      if(e.voiceNote){const vn=C.voiceNote(p,e,ms),w=h("div",C.styles.vnWrap(c)),bt=h("div",C.styles.vnButton(c));
+        if(vn.playing)bt.append(h("div",C.styles.vnPauseBar(c)),h("div",C.styles.vnPauseBar(c)));else bt.append(h("div",C.styles.vnPlay(c)));
+        const bars=h("div",C.styles.vnBars(c));vn.bars.forEach(b=>bars.append(h("div",C.styles.vnBar(c,b))));
+        w.append(bt,bars,h("div",C.styles.vnTime(p,c),vn.time));bub.append(w);
+        if(e.voiceNote==="transcript"){const tr=h("div",C.styles.vnTranscript(p,c));rich(tr);bub.append(tr)}}
+      else rich(bub);
       if(st.meta){const m=h("span",C.styles.meta(p,c),st.meta);m.append(h("span",C.styles.ticks(c),"✓✓"));bub.append(m)}
       const side=h("div",C.styles.side(c));side.append(bub);
       const rs=C.reactionState(e,ms);
       if(rs){const pill=h("div",C.styles.reactions(p,c,rs));e.reactions.forEach(r=>{const sp=h("span",null,r.emoji);if(r.count>1)sp.append(h("span",C.styles.reactionCount(c),String(r.count)));pill.append(sp)});side.append(pill)}
       row.append(vis,side);stack.append(row);
     }
-    if(f.typing){const tr=h("div",C.styles.typingRow(p));tr.append(h("div",C.styles.typing(p,f.typing.char),"•••"));stack.append(tr)}
+    if(f.typing){const tr=h("div",C.styles.typingRow(p));tr.append(h("div",C.styles.typing(p,f.typing.char,f.typing),C.typingLabel(f.typing)));stack.append(tr)}
     inner.append(stack);outer.append(inner);canvas.append(hd,outer);
   }
   highlightTimeline(ms);
@@ -565,35 +573,36 @@ function ai33Key(){const k=$("ai33Key").value.trim();try{if($("ai33Remember").ch
 try{const k=localStorage.getItem(KEY_STORE);if(k){$("ai33Key").value=k;$("ai33Remember").checked=true}}catch(_){}
 $("ai33Remember").onchange=()=>{try{if($("ai33Remember").checked){const k=$("ai33Key").value.trim();if(k)localStorage.setItem(KEY_STORE,k)}else localStorage.removeItem(KEY_STORE)}catch(_){}};
 function pollJob(url,onTick){return new Promise((resolve,reject)=>{const poll=async()=>{try{const p=await (await fetch(url)).json();if(!p.ok)throw Error(p.error||"No se pudo consultar el progreso");onTick(p);if(p.phase==="done")return resolve(p);if(p.phase==="error")return reject(Error(p.error||p.message||"Error"));setTimeout(poll,400)}catch(e){reject(e)}};poll()})}
-$("ai33Generate").onclick=async()=>{
-  askNotifyPermission();closeAutoNotice();
-  const key=ai33Key();if(!key){$("ai33Status").textContent="Introduce la API Key de AI33.";return}
+/** Genera (o reutiliza) las voces de los mensajes. true si terminó bien. */
+async function generateMessageAudio(){
+  const key=ai33Key();if(!key){$("ai33Status").textContent="Introduce la API Key de AI33.";return false}
   buildTimeline();
   const parsed=C.parseScript($("script").value,Object.values(state.chars)).messages;
-  if(!parsed.length){$("ai33Status").textContent="No hay mensajes válidos en el guion.";return}
+  if(!parsed.length){$("ai33Status").textContent="No hay mensajes válidos en el guion.";return false}
   const messages=parsed.map(m=>{const {voice,speed}=C.messageVoice(m.char),key=C.audioCacheKey(m.text,voice,speed,"message"),cache=cachedAudioInfo(m.text,voice,speed,"message",state.dialogueMessages.find(x=>x&&x.cacheKey===key));return{lineIndex:m.lineIndex,kind:"message",text:m.text,voice_id:voice,speed,cacheKey:cache.cacheKey,existingAudio:cache.existingAudio}});
-  if(messages.some(x=>!x.voice_id)){$("ai33Status").textContent="Falta AI33 Voice ID en uno o más personajes.";return}
+  if(messages.some(x=>!x.voice_id)){$("ai33Status").textContent="Falta AI33 Voice ID en uno o más personajes.";return false}
   $("ai33Generate").disabled=true;$("ai33ProgressWrap").style.display="block";$("ai33ProgressBar").style.width="0%";$("ai33ProgressPct").textContent="0%";$("ai33ProgressText").textContent="Preparando audios…";
   try{
     const j=await postJSON("/ai33/messages",{projectSlug:state.projectSlug,api_key:key,messages});
     const p=await pollJob("/ai33/progress/"+j.job,p=>{const pct=Math.max(0,Math.min(100,Number(p.percent)||0));$("ai33ProgressBar").style.width=pct+"%";$("ai33ProgressPct").textContent=pct+"%";$("ai33ProgressText").textContent=p.message||"Procesando…"});
-    state.dialogueMessages=(p.results||[]).filter(x=>x&&x.audio);buildTimeline();renderAt(currentTime);await saveNow();
+    state.dialogueMessages=(p.results||[]).filter(x=>x&&x.audio).map(x=>{const old=state.dialogueMessages.find(o=>o&&o.audio===x.audio&&Array.isArray(o.peaks));return old?{...x,peaks:old.peaks}:x});buildTimeline();await ensureVoicePeaks();renderAt(currentTime);await saveNow();
     $("ai33Status").textContent=`✓ ${state.dialogueMessages.length} audios disponibles; solo se generaron los que faltaban.`;
-    startAutoRender();
-  }catch(e){$("ai33Status").textContent="Error AI33: "+e.message;$("ai33ProgressText").textContent="Error"}
+    return true;
+  }catch(e){$("ai33Status").textContent="Error AI33: "+e.message;$("ai33ProgressText").textContent="Error";return false}
   finally{$("ai33Generate").disabled=false}
 };
-$("generateEventAudio").onclick=async()=>{
-  askNotifyPermission();closeAutoNotice();
-  const key=ai33Key();if(!key){$("eventAudioStatus").textContent="Introduce la API Key de AI33 en el apartado de Voces.";return}
+$("ai33Generate").onclick=async()=>{askNotifyPermission();closeAutoNotice();if(await generateMessageAudio())startAutoRender()};
+/** Genera los audios de eventos y títulos. true si terminó bien, null si no había nada que generar. */
+async function generateEventTitleAudio(){
+  const key=ai33Key();if(!key){$("eventAudioStatus").textContent="Introduce la API Key de AI33 en el apartado de Voces.";return false}
   buildTimeline();
   const titles=state.titles||[];
-  if(!state.groupEvents.length&&!titles.length){$("eventAudioStatus").textContent="No hay eventos ni títulos para generar.";return}
+  if(!state.groupEvents.length&&!titles.length){$("eventAudioStatus").textContent="No hay eventos ni títulos para generar.";return null}
   const items=state.groupEvents.map((ev,i)=>{const text=C.eventSpeech(ev),voice=(ev.voice_id||autoEventVoice(ev.actor)||"").trim(),speed=Math.max(.25,Number(ev.speed)||1),cache=cachedAudioInfo(text,voice,speed,"event",ev);return{eventIndex:i,kind:"event",text,voice_id:voice,speed,cacheKey:cache.cacheKey,existingAudio:cache.existingAudio}});
   // Títulos: eventIndex negativo (-1 = título 1, -2 = título 2…).
   const chars=Object.values(state.chars),voice=C.titleVoice(chars);
   titles.slice().reverse().forEach((t,ri)=>{const ti=titles.length-1-ri,old=C.titleAudioFor({...project(),chars},t,ti);const cache=cachedAudioInfo(t.text,voice,1,"initialTitle",old?{audio:old.audio,cacheKey:C.titleAudioKey(t.text,chars)}:null);items.unshift({eventIndex:-(ti+1),kind:"initialTitle",text:t.text,voice_id:voice,speed:1,cacheKey:cache.cacheKey,existingAudio:cache.existingAudio})});
-  if(items.some(x=>!x.voice_id)){$("eventAudioStatus").textContent="Falta una voz AI33 para algún evento. Configura una voz en un personaje o selecciona una voz en el evento.";return}
+  if(items.some(x=>!x.voice_id)){$("eventAudioStatus").textContent="Falta una voz AI33 para algún evento. Configura una voz en un personaje o selecciona una voz en el evento.";return false}
   $("generateEventAudio").disabled=true;$("eventAudioStatus").textContent="Generando audios de eventos, uno por uno…";
   try{
     const j=await postJSON("/ai33/messages",{projectSlug:state.projectSlug,api_key:key,messages:items});
@@ -603,11 +612,34 @@ $("generateEventAudio").onclick=async()=>{
     if(titles.length)state.titleAudios=titleAudios;
     buildTimeline();renderGroupEvents();renderAt(currentTime);await saveNow();
     $("eventAudioStatus").textContent=`✓ ${(p.results||[]).length} audios disponibles; solo se generaron los que faltaban.`;
-    startAutoRender();
-  }catch(e){$("eventAudioStatus").textContent="Error AI33: "+e.message}finally{$("generateEventAudio").disabled=false}
+    return true;
+  }catch(e){$("eventAudioStatus").textContent="Error AI33: "+e.message;return false}finally{$("generateEventAudio").disabled=false}
 };
+$("generateEventAudio").onclick=async()=>{askNotifyPermission();closeAutoNotice();if(await generateEventTitleAudio()===true)startAutoRender()};
 $("ai33Clear").onclick=()=>{state.dialogueMessages=[];buildTimeline();renderAt(currentTime);$("ai33Status").textContent="Sin audios de AI33 asignados (los archivos siguen en la carpeta del proyecto y se reutilizarán).";$("ai33ProgressWrap").style.display="none"};
 $("ai33Folder").onclick=async()=>{try{const j=await postJSON("/ai33/open-folder",{projectSlug:state.projectSlug});$("ai33Status").textContent="📁 Carpeta: "+j.path}catch(e){$("ai33Status").textContent="No se pudo abrir la carpeta: "+e.message}};
+
+/* ───────── Notas de voz: forma de onda real del audio ───────── */
+async function computePeaks(url,n=48){
+  const buf=await (await fetch(url)).arrayBuffer();
+  const ctx=new (window.OfflineAudioContext||window.webkitOfflineAudioContext)(1,1,44100);
+  const data=(await ctx.decodeAudioData(buf)).getChannelData(0),step=Math.max(1,Math.floor(data.length/n)),out=[];
+  for(let i=0;i<n;i++){let m=0;for(let j=i*step,end=Math.min(data.length,(i+1)*step);j<end;j+=4){const v=Math.abs(data[j]);if(v>m)m=v}out.push(m)}
+  const mx=Math.max(...out,1e-6);return out.map(v=>Math.round(v/mx*100)/100);
+}
+let peaksBusy=false,peaksTimer=0;
+/** Analiza (una vez) el audio de cada nota de voz y guarda su onda en el proyecto. */
+async function ensureVoicePeaks(){
+  if(peaksBusy)return;peaksBusy=true;let changed=false;
+  try{for(const e of events.filter(e=>e.kind==="message"&&e.voiceNote&&e.audio&&!Array.isArray(e.peaks))){
+    const same=state.dialogueMessages.filter(x=>x&&x.audio===e.audio);if(!same.length)continue;
+    let peaks=(same.find(x=>Array.isArray(x.peaks))||{}).peaks;
+    if(!peaks){try{peaks=await computePeaks(e.audio)}catch(err){console.warn("No se pudo analizar el audio",err);peaks=[]}}
+    same.forEach(x=>{if(!Array.isArray(x.peaks))x.peaks=peaks});changed=true}}
+  finally{peaksBusy=false}
+  if(changed){buildTimeline();renderAt(currentTime)}
+}
+function schedulePeaks(){clearTimeout(peaksTimer);peaksTimer=setTimeout(ensureVoicePeaks,700)}
 
 /* ───────── Efectos visuales ───────── */
 function syncFx(){document.querySelectorAll("[data-fx]").forEach(b=>b.checked=!!state.fx[b.dataset.fx]);$("fxClock").value=state.fx.clock||"21:14"}
@@ -647,8 +679,10 @@ document.addEventListener("keydown",e=>{if(e.key==="Escape"&&autoTimer)cancelAut
 /* ───────── Render MP4 ───────── */
 function syncResolutionBadge(){const v=$("resolution").value;$("resolutionBadge").textContent=({"1920x1080":"16:9 · 1920×1080","1280x720":"16:9 · 1280×720","1080x1920":"9:16 · 1080×1920","720x1280":"9:16 · 720×1280"})[v]||v}
 $("resolution").onchange=()=>{syncResolutionBadge();buildTimeline();fitPreviewCanvas();renderAt(currentTime);$("status").textContent="Formato: "+$("resolution").selectedOptions[0].textContent+"."};
-$("render").onclick=async()=>{
+/** Renderiza el MP4. true si terminó bien. */
+async function renderVideo(){
   closeAutoNotice();
+  await ensureVoicePeaks();
   state.playing=false;cancelAnimationFrame(state.raf);stopPreviewSounds();buildTimeline();
   $("render").disabled=true;$("status").textContent="Renderizando con Remotion…";$("download").innerHTML="";
   const wrap=$("renderProgressWrap"),bar=$("renderProgressBar"),pct=$("renderProgressPct"),txt=$("renderProgressText");wrap.style.display="block";bar.style.width="0%";pct.textContent="0%";txt.textContent="Preparando…";
@@ -657,8 +691,24 @@ $("render").onclick=async()=>{
     const p=await pollJob("/export/progress/"+j.job,p=>{const v=Math.max(0,Math.min(100,Number(p.percent)||0));bar.style.width=v+"%";pct.textContent=v+"%";txt.textContent=p.message||"Renderizando…"});
     showVideoDownload(p.url);
     $("status").textContent="✓ "+(p.message||"MP4 generado correctamente.");
-  }catch(e){$("status").textContent="Error: "+e.message;txt.textContent="Error"}
+    return true;
+  }catch(e){$("status").textContent="Error: "+e.message;txt.textContent="Error";return false}
   finally{$("render").disabled=false}
+}
+$("render").onclick=()=>renderVideo();
+
+/* ───────── Generar todo: voces → eventos y títulos → MP4 ───────── */
+$("generateAll").onclick=async()=>{
+  askNotifyPermission();closeAutoNotice();
+  const btn=$("generateAll");btn.disabled=true;$("download").innerHTML="";
+  try{
+    $("status").textContent="🚀 1/3 · Generando las voces de los mensajes…";
+    if(!await generateMessageAudio()){$("status").textContent="⚠ «Generar todo» se detuvo en las voces: "+$("ai33Status").textContent;return}
+    $("status").textContent="🚀 2/3 · Generando los audios de eventos y títulos…";
+    if(await generateEventTitleAudio()===false){$("status").textContent="⚠ «Generar todo» se detuvo en eventos y títulos: "+$("eventAudioStatus").textContent;return}
+    $("status").textContent="🚀 3/3 · Generando el MP4…";
+    if(await renderVideo()){noticeBeep();systemNotify("MP4 listo.")}
+  }finally{btn.disabled=false}
 };
 $("loadDemo").onclick=loadDemo;
 

@@ -21,6 +21,7 @@
 
   const TITLE_RE = /^t[ií]tulo inicial(?:\s*(\d+))?\s*:/i;
   const EVENT_RE = /^evento\s*:/i;
+  const VOICE_RE = /^\[\s*audio(\s*-\s*solo)?\s*\]\s*/i;   // «Pepe: [audio] texto» → nota de voz
   const REACT_RE = /\{\s*(?:reacci[oó]n(?:es)?|r)\s*:\s*([^}]*)\}\s*$/i;
   const px = (n) => `${Math.round(Number(n) * 100) / 100}px`;
   const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
@@ -143,6 +144,31 @@
     return String(Math.floor(t / 60)).padStart(2, '0') + ':' + String(t % 60).padStart(2, '0');
   };
 
+  /* ───────────────────────── Notas de voz ───────────────────────── */
+
+  C.VN_BARS = 26;
+  /** Cómo se ve una nota de voz en el instante ms: si suena, cuánto lleva (barras rellenas) y el tiempo. */
+  C.voiceNote = (p, e, ms) => {
+    const popup = Math.max(0, Number(p.popupDelay ?? 0.35)) * 1000;
+    const start = e.visibleStart + (e.audio ? popup : 0);
+    const dur = e.audio && Number(e.audioDuration) > 0 ? Number(e.audioDuration) * 1000 : Math.max(1000, e.end - e.visibleStart);
+    const prog = clamp((ms - start) / dur, 0, 1);
+    const playing = ms >= start && prog < 1;
+    const peaks = Array.isArray(e.peaks) && e.peaks.length ? e.peaks : null;
+    // Sin audio analizado todavía: onda de relleno, siempre la misma para el mismo texto.
+    let seed = 7;
+    for (const ch of String(e.text || '')) seed = (seed * 31 + ch.charCodeAt(0)) % 9973;
+    const bars = [];
+    for (let i = 0; i < C.VN_BARS; i++) {
+      const v = peaks ? Number(peaks[Math.floor((i * peaks.length) / C.VN_BARS)]) || 0
+        : 0.3 + 0.7 * Math.abs(Math.sin(i * 1.7 + seed) * Math.cos(i * 0.55 + seed * 0.3));
+      bars.push({ h: clamp(0.14 + 0.86 * v, 0.14, 1), filled: (i + 0.5) / C.VN_BARS <= prog });
+    }
+    const total = Math.max(1, Math.round(dur / 1000));
+    const left = playing ? Math.max(0, Math.ceil((dur - (ms - start)) / 1000)) : total;
+    return { playing, prog, bars, time: Math.floor(left / 60) + ':' + String(left % 60).padStart(2, '0') };
+  };
+
   /** Estado visual de una fila de mensaje en el fotograma f (quién habla, quién se atenúa, foto agrupada…). */
   C.rowState = (p, f, e, ms) => {
     const fx = C.fx(p);
@@ -163,7 +189,7 @@
     const typing = f.typing && f.typing.char ? f.typing.char.name : '';
     return {
       avatars: chars.filter((c) => c.image).slice(0, 4).map((c) => c.image),
-      subtitle: typing ? `${typing} está escribiendo…` : chars.map((c) => c.name).join(', '),
+      subtitle: typing ? `${typing} ${f.typing.voiceNote ? 'está grabando un audio' : 'está escribiendo'}…` : chars.map((c) => c.name).join(', '),
       typing: !!typing,
     };
   };
@@ -236,10 +262,13 @@
       const c = C.findChar(chars, name);
       if (!c) { if (name && name.length <= 40 && !out.unknownNames.includes(name)) out.unknownNames.push(name); continue; }
       let text = line.slice(p + 1).trim();
+      let voiceNote = null;
+      const vm = text.match(VOICE_RE);
+      if (vm) { voiceNote = vm[1] ? 'solo' : 'transcript'; text = text.replace(VOICE_RE, '').trim(); }
       let reactions = [];
       const rm = text.match(REACT_RE);
       if (rm) { reactions = C.parseReactions(rm[1]); text = text.replace(REACT_RE, '').trim(); }
-      out.messages.push({ char: c, text, reactions, lineIndex: idx++ });
+      out.messages.push({ char: c, text, reactions, voiceNote, lineIndex: idx++ });
     }
     out.initialTitle = out.titles.length ? out.titles[0].text : '';
     return out;
@@ -443,7 +472,7 @@
         reactAt = Math.max(visibleStart + 500, end - 600);
         end = Math.max(end, reactAt + 700);
       }
-      out.push({ kind: 'message', key: 'msg-' + m.lineIndex, char: m.char, side, text: m.text, reactions: m.reactions, reactAt, lineIndex: m.lineIndex, start, typingStart: start, visibleStart, end, audio: secs ? dm.audio : null, audioDuration: secs, audioMissing });
+      out.push({ kind: 'message', key: 'msg-' + m.lineIndex, char: m.char, side, text: m.text, reactions: m.reactions, reactAt, lineIndex: m.lineIndex, voiceNote: m.voiceNote, peaks: dm && Array.isArray(dm.peaks) ? dm.peaks : null, start, typingStart: start, visibleStart, end, audio: secs ? dm.audio : null, audioDuration: secs, audioMissing });
       cursor = end;
     }
     const totalMs = out.length ? out[out.length - 1].end : 1000;
@@ -493,6 +522,7 @@
     // Quién habla: el último mensaje mientras dura (su voz o su tiempo en pantalla).
     const speakingKey = lastMessage && ms < lastMessage.end ? lastMessage.key : null;
     if (fx.speaker && speakingKey) animating = true;
+    if (speakingKey && lastMessage.voiceNote) animating = true;   // la nota de voz se va rellenando
     // Fondo vivo: color y lado de quien habla, con transición desde el anterior.
     let bgFx = null;
     if (fx.bg && !p.bgImage) {
@@ -581,6 +611,9 @@
     if (totalMs) v *= clamp((totalMs - ms) / C.MUSIC_FADE_OUT_MS, 0, 1);
     return clamp(v, 0, 1);
   };
+
+  /** Texto del indicador de escritura: «•••» o «🎤 grabando audio…» antes de una nota de voz. */
+  C.typingLabel = (e) => (e && e.voiceNote ? '🎤 grabando audio…' : '•••');
 
   C.membersLabel = (n) => `👥 ${n} ${n === 1 ? 'miembro' : 'miembros'}`;
 
@@ -711,13 +744,21 @@
       };
     },
     reactionCount: (c) => ({ fontSize: px(26 * bubbleScaleOf(c)), marginLeft: px(2 * bubbleScaleOf(c)), opacity: '0.9' }),
+    vnWrap: (c) => { const s = bubbleScaleOf(c); return { display: 'flex', alignItems: 'center', gap: px(16 * s), WebkitTextStroke: '0px', textShadow: 'none' }; },
+    vnButton: (c) => { const s = bubbleScaleOf(c); return { width: px(64 * s), height: px(64 * s), flex: '0 0 auto', borderRadius: '50%', background: 'rgba(255,255,255,.24)', display: 'flex', alignItems: 'center', justifyContent: 'center' }; },
+    vnPlay: (c) => { const s = bubbleScaleOf(c); return { width: '0px', height: '0px', borderTop: `${px(14 * s)} solid transparent`, borderBottom: `${px(14 * s)} solid transparent`, borderLeft: `${px(23 * s)} solid ${c.textColor || '#fff'}`, marginLeft: px(6 * s) }; },
+    vnPauseBar: (c) => { const s = bubbleScaleOf(c); return { width: px(8 * s), height: px(26 * s), borderRadius: px(2 * s), background: c.textColor || '#fff', margin: `0 ${px(3 * s)}` }; },
+    vnBars: (c) => { const s = bubbleScaleOf(c); return { display: 'flex', alignItems: 'center', gap: px(5 * s), height: px(56 * s) }; },
+    vnBar: (c, b) => { const s = bubbleScaleOf(c); return { width: px(6 * s), height: px(56 * s * b.h), borderRadius: px(3 * s), background: c.textColor || '#fff', opacity: b.filled ? '1' : '0.42' }; },
+    vnTime: (p, c) => { const s = bubbleScaleOf(c); return { fontFamily: fontOf(p), fontSize: px(28 * s), fontWeight: '800', lineHeight: '1', minWidth: px(62 * s), fontVariantNumeric: 'tabular-nums', opacity: '0.92' }; },
+    vnTranscript: (p, c) => { const s = bubbleScaleOf(c); return { fontSize: px(34 * s), fontStyle: 'italic', fontWeight: '600', lineHeight: '1.18', opacity: '0.92', marginTop: px(12 * s), whiteSpace: 'pre-wrap' }; },
     systemWrap: () => ({ display: 'flex', justifyContent: 'center', width: '100%', margin: '18px 0 24px' }),
     systemText: (p) => {
       const t = C.theme(p);
       return { color: t.systemText, background: t.systemBg, padding: t.systemPad, borderRadius: '16px', fontFamily: fontOf(p), fontSize: px(clamp(Number(p.eventSize) || 28, 14, 96)), fontWeight: '600', lineHeight: '1.3', textAlign: 'center', maxWidth: layoutOf(p).textMax, textShadow: t.systemBg === 'transparent' ? '0 2px 8px rgba(0,0,0,.35)' : 'none' };
     },
     typingRow: (p) => ({ display: 'grid', gridTemplateColumns: layoutOf(p).lanes, alignItems: 'center', width: '100%', marginBottom: '22px', flexShrink: '0' }),
-    typing: (p, c) => ({ gridColumn: '2', gridRow: '1', justifySelf: c.side === 'left' ? 'start' : 'end', transform: `translateX(${px(c.bubbleX || 0)})`, background: C.theme(p).typingBg, color: '#fff', borderRadius: '28px', padding: '15px 28px', fontFamily: fontOf(p), fontSize: '48px', letterSpacing: '8px', lineHeight: '1.12' }),
+    typing: (p, c, e) => ({ gridColumn: '2', gridRow: '1', justifySelf: c.side === 'left' ? 'start' : 'end', transform: `translateX(${px(c.bubbleX || 0)})`, background: C.theme(p).typingBg, color: '#fff', borderRadius: '28px', padding: '15px 28px', fontFamily: fontOf(p), fontSize: '48px', letterSpacing: '8px', lineHeight: '1.12', ...(e && e.voiceNote ? { letterSpacing: '0px', fontSize: '36px', fontWeight: '700' } : {}) }),
   };
 
   root.ChatCore = C;

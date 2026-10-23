@@ -23,6 +23,7 @@ evento: María cambió el título del grupo a Viaje a Madrid
 ```
 
 - `Titulo inicial:` se muestra centrado al principio, con su propio audio; el chat empieza 2 s después.
+- **🚀 Generar todo** (*05 · Exportar vídeo*): genera las voces que falten de mensajes, eventos y títulos y después el MP4, de un tirón.
 - **Ajuste automático en vertical** (*05 · Exportar vídeo*, activado por defecto): en 9:16 las columnas de las fotos se estrechan, la burbuja se limita al 130 % y la foto a 140 px, y los nombres largos se reducen en vez de partirse. Los valores guardados del personaje no cambian; el horizontal queda igual.
 - **✨ Efectos visuales** (*00 · Estilo y cabecera*, cada uno se activa por separado; los proyectos nuevos los traen activados y los antiguos siguen como estaban):
   - *Texto limpio:* sin contorno negro, letra redondeada Nunito (necesita internet la primera vez; si no, usa una de respaldo).
@@ -42,6 +43,7 @@ evento: María cambió el título del grupo a Viaje a Madrid
   Si la frase dice que alguien **sale / es sacado / es eliminado** del grupo, **se une / es añadido** al grupo o **cambia el título del grupo a …**, la cabecera se actualiza sola.
 - **Reacciones:** al final de un mensaje, `{r: 😂3 🔥 💀}` (el número es cuántas personas reaccionan). Aparecen debajo de la burbuja cuando termina la voz de ese mensaje. También vale `{reacciones: 😂 🔥}`.
 - Los emojis se ven en el vídeo pero no se envían a la voz.
+- **Notas de voz:** `Pepe: [audio] texto` muestra una nota de voz (▶, onda y duración) con la transcripción debajo; `[audio-solo]` la muestra sin texto. La voz se genera igual que un mensaje normal (añadir o quitar la marca no regenera el audio). Mientras suena, el botón pasa a ⏸ y la onda —la forma real del audio— se va rellenando; antes aparece «🎤 grabando audio…».
 
 ## Funciones principales
 
