@@ -169,6 +169,64 @@
     return { playing, prog, bars, time: Math.floor(left / 60) + ':' + String(left % 60).padStart(2, '0') };
   };
 
+  /* ───────────────────────── Formato «Personajes hablando» (p.mode === 'talk') ───────────────────────── */
+
+  C.isTalk = (p) => !!(p && p.mode === 'talk');
+
+  /** Cuándo suena la voz de un mensaje: inicio y duración en ms (sin audio, su tiempo en pantalla). */
+  const voiceWindow = (p, e) => {
+    const popup = Math.max(0, Number(p.popupDelay ?? 0.35)) * 1000;
+    const start = e.visibleStart + (e.audio ? popup : 0);
+    const dur = e.audio && Number(e.audioDuration) > 0 ? Number(e.audioDuration) * 1000 : Math.max(800, e.end - e.visibleStart - 200);
+    return { start, dur };
+  };
+
+  /** Qué hay en pantalla en el formato «Personajes hablando»: reparto, quién habla, su volumen y el texto karaoke. */
+  C.talkFrame = (p, events, ms) => {
+    const intro = events.find((e) => e.kind === 'intro' && ms >= e.start && ms < e.end);
+    if (intro) return { intro };
+    const S = C.canvasSize(p);
+    const msgs = events.filter((e) => e.kind === 'message');
+    // Reparto: cada personaje una vez, en el orden en que habla por primera vez.
+    const names = [];
+    msgs.forEach((e) => { if (!names.includes(e.char.name)) names.push(e.char.name); });
+    const current = [...msgs].reverse().find((e) => ms >= e.visibleStart) || null;
+    const speaking = !!(current && ms < current.end);
+    let amp = 0, words = [], pop = 1;
+    if (current) {
+      const w = voiceWindow(p, current), t = ms - w.start, k = clamp(t / w.dur, 0, 1);
+      if (speaking && t >= 0 && t < w.dur) {
+        const pk = Array.isArray(current.peaks) && current.peaks.length ? current.peaks : null;
+        if (pk) {
+          const i = (t / w.dur) * (pk.length - 1), a = Math.floor(i), b = Math.min(pk.length - 1, a + 1);
+          amp = clamp((Number(pk[a]) || 0) + ((Number(pk[b]) || 0) - (Number(pk[a]) || 0)) * (i - a), 0, 1);
+        } else amp = 0.35 + 0.35 * Math.abs(Math.sin(t / 95)) * Math.abs(Math.cos(t / 260));
+      }
+      // Karaoke: cada palabra se ilumina según su peso (letras) dentro de la duración de la voz.
+      const segs = [];
+      C.richText(current.text).forEach((sg) => sg.t.split(/(\s+)/).forEach((x) => { if (x) segs.push({ t: x, hi: sg.hi, space: !x.trim() }); }));
+      const total = segs.reduce((a, x) => a + (x.space ? 0 : x.t.length + 1), 0) || 1;
+      let acc = 0;
+      const done = speaking ? k * total : total;
+      words = segs.map((x) => {
+        if (x.space) return { ...x, state: 'space' };
+        const a = acc; acc += x.t.length + 1;
+        return { ...x, state: done >= acc ? 'past' : done >= a ? 'current' : 'future' };
+      });
+      pop = clamp((ms - current.visibleStart) / 260, 0, 1);
+    }
+    const n = Math.max(1, names.length);
+    const cast = names.map((name, i) => {
+      const e = msgs.find((m) => m.char.name === name);
+      const isSpeaker = !!(current && current.char.name === name);
+      return { char: e.char, i, n, x: ((i + 0.5) / n) * S.w, speaking: isSpeaker && speaking, dim: speaking && !isSpeaker, amp: isSpeaker ? amp : 0, ms };
+    });
+    const speaker = current ? cast.find((c) => c.char.name === current.char.name) : null;
+    const sys = [...events].reverse().find((e) => e.kind === 'system' && ms >= e.visibleStart && ms < e.end + 1200) || null;
+    const bgFx = speaker ? { color: C.solidColor(speaker.char.color), x: (speaker.x / S.w) * 100 } : null;
+    return { intro: null, cast, current, speaker, words, pop, sys, bgFx, speaking };
+  };
+
   /** Estado visual de una fila de mensaje en el fotograma f (quién habla, quién se atenúa, foto agrupada…). */
   C.rowState = (p, f, e, ms) => {
     const fx = C.fx(p);
@@ -720,6 +778,41 @@
     /** Palabra resaltada con *asteriscos*: efecto rotulador. */
     highlight: () => ({ background: 'rgba(255,224,102,.96)', color: '#1b1b1b', borderRadius: '.22em', padding: '0 .16em', WebkitTextStroke: '0px', textShadow: 'none', WebkitBoxDecorationBreak: 'clone', boxDecorationBreak: 'clone' }),
     /** Fondo vivo: brillo del color de quien habla en su lado + patrón de puntos muy suave. */
+    talkSize: (p, n) => {
+      const v = C.isVertical(p);
+      return n <= 2 ? (v ? 330 : 420) : n === 3 ? (v ? 270 : 340) : Math.round(Math.min(v ? 230 : 300, (C.canvasSize(p).w / n) * 0.78));
+    },
+    /** Un personaje del reparto: rebota y crece con el volumen de su voz; los demás se atenúan. */
+    talkCast: (p, c) => {
+      const size = C.styles.talkSize(p, c.n), bottom = C.isVertical(p) ? 300 : 80;
+      const bounce = c.speaking ? -c.amp * 34 : 0, sc = c.speaking ? 1.06 + c.amp * 0.07 : c.dim ? 0.9 : 1;
+      return { position: 'absolute', left: px(c.x - size / 2), bottom: px(bottom), width: px(size), display: 'flex', flexDirection: 'column', alignItems: 'center', transform: `translateY(${px(bounce)}) scale(${sc.toFixed(4)})`, transformOrigin: 'center bottom', opacity: c.dim ? '0.55' : '1', zIndex: c.speaking ? '3' : '2' };
+    },
+    talkImg: (p, c) => {
+      const size = C.styles.talkSize(p, c.n), col = C.solidColor(c.char.color);
+      return { width: px(size), height: px(size), objectFit: 'contain', filter: c.speaking ? `drop-shadow(0 0 ${Math.round(22 + c.amp * 30)}px ${rgba(col, 0.9)}) drop-shadow(0 16px 24px rgba(0,0,0,.45))` : 'drop-shadow(0 16px 24px rgba(0,0,0,.45))' };
+    },
+    talkName: (p, c) => ({ marginTop: '14px', padding: '8px 26px', borderRadius: '999px', background: c.char.color || '#39c96b', color: c.char.textColor || '#fff', fontFamily: fontOf(p), fontSize: px(C.isVertical(p) ? 34 : 38), fontWeight: '800', whiteSpace: 'nowrap', boxShadow: '0 6px 16px rgba(0,0,0,.35)', WebkitTextStroke: '0px' }),
+    /** Bocadillo con el texto de quien habla, sobre el reparto y desplazado hacia su lado. */
+    talkBubbleWrap: (p, f) => {
+      const S = C.canvasSize(p), size = C.styles.talkSize(p, f.speaker ? f.speaker.n : 2), bottom = (C.isVertical(p) ? 300 : 80) + size * 1.12 + 120;
+      const x = f.speaker ? f.speaker.x / S.w : 0.5;
+      return { position: 'absolute', left: '60px', right: '60px', bottom: px(bottom), top: px(C.isVertical(p) ? 200 : 110), display: 'flex', alignItems: 'flex-end', justifyContent: x < 0.34 ? 'flex-start' : x > 0.66 ? 'flex-end' : 'center', zIndex: '4' };
+    },
+    talkBubble: (p, f) => {
+      const c = f.current.char, col = c.color || '#39c96b', k = f.pop, c1 = 1.7, c3 = c1 + 1;
+      const back = 1 + c3 * Math.pow(k - 1, 3) + c1 * Math.pow(k - 1, 2);
+      const x = f.speaker ? f.speaker.x / C.canvasSize(p).w : 0.5;
+      return { position: 'relative', maxWidth: C.isVertical(p) ? '92%' : '64%', background: `linear-gradient(180deg, rgba(255,255,255,.17), rgba(255,255,255,0) 75%), ${col}`, color: c.textColor || '#fff', fontFamily: fontOf(p), fontSize: px(C.isVertical(p) ? 54 : 58), fontWeight: '800', lineHeight: '1.18', padding: '30px 46px', borderRadius: '40px', boxShadow: '0 18px 40px rgba(0,0,0,.4)', transform: `scale(${(0.7 + 0.3 * back).toFixed(4)})`, transformOrigin: (x < 0.34 ? 'left' : x > 0.66 ? 'right' : 'center') + ' bottom', whiteSpace: 'pre-wrap', textShadow: '0 1px 3px rgba(0,0,0,.2)' };
+    },
+    talkTail: (p, f) => {
+      const c = f.current.char, x = f.speaker ? f.speaker.x / C.canvasSize(p).w : 0.5;
+      const pos = x < 0.34 ? { left: '70px' } : x > 0.66 ? { right: '70px' } : { left: 'calc(50% - 22px)' };
+      return { position: 'absolute', bottom: '-18px', width: '44px', height: '44px', background: C.solidColor(c.color || '#39c96b'), transform: 'rotate(45deg)', borderRadius: '6px', zIndex: '-1', ...pos };
+    },
+    talkWord: (w) => (w.state === 'future' ? { opacity: '0.38' } : w.state === 'current' ? { color: '#ffe066' } : {}),
+    talkSystem: (p) => ({ position: 'absolute', top: px(C.isVertical(p) ? 130 : 46), left: '0px', right: '0px', display: 'flex', justifyContent: 'center', zIndex: '5' }),
+    talkSystemText: (p) => ({ background: 'rgba(0,0,0,.55)', color: '#fff', fontFamily: fontOf(p), fontSize: px(clamp(Number(p.eventSize) || 28, 14, 96) * 1.15), fontWeight: '700', padding: '12px 30px', borderRadius: '999px', border: '1px solid rgba(255,255,255,.15)' }),
     fxBackground: (f) => ({
       position: 'absolute', inset: '0px', zIndex: '0', pointerEvents: 'none',
       backgroundImage: (f.bgFx ? `radial-gradient(circle at ${f.bgFx.x.toFixed(2)}% 62%, ${rgba(f.bgFx.color, 0.34)} 0%, ${rgba(f.bgFx.color, 0)} 58%), ` : '') + 'radial-gradient(rgba(255,255,255,.055) 2px, transparent 2.6px)',
