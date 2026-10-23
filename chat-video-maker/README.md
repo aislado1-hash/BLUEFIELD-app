@@ -43,6 +43,8 @@ evento: María cambió el título del grupo a Viaje a Madrid
   Si la frase dice que alguien **sale / es sacado / es eliminado** del grupo, **se une / es añadido** al grupo o **cambia el título del grupo a …**, la cabecera se actualiza sola.
 - **Reacciones:** al final de un mensaje, `{r: 😂3 🔥 💀}` (el número es cuántas personas reaccionan). Aparecen debajo de la burbuja cuando termina la voz de ese mensaje. También vale `{reacciones: 😂 🔥}`.
 - Los emojis se ven en el vídeo pero no se envían a la voz.
+- **Confesionario:** `confesionario: Algodón: Vale. Fui yo.` corta el chat y muestra a ese personaje solo, a pantalla completa, hablando a cámara (● REC, zoom lento, su foto late con la voz y subtítulo palabra a palabra). Luego se vuelve al chat; ese mensaje no aparece en él.
+- **Prompt para la IA de guiones:** en `PROMPT_GUIONES.md` está el texto para que la IA escriba guiones con todo este formato sin retoques.
 - **Notas de voz:** `Pepe: [audio] texto` muestra una nota de voz (▶, onda y duración) con la transcripción debajo; `[audio-solo]` la muestra sin texto. La voz se genera igual que un mensaje normal (añadir o quitar la marca no regenera el audio). Mientras suena, el botón pasa a ⏸ y la onda —la forma real del audio— se va rellenando; antes aparece «🎤 grabando audio…».
 
 ## Funciones principales

@@ -21,6 +21,7 @@
 
   const TITLE_RE = /^t[ií]tulo inicial(?:\s*(\d+))?\s*:/i;
   const EVENT_RE = /^evento\s*:/i;
+  const CONF_RE = /^confesionario\s*:\s*/i;   // «confesionario: Pepe: texto» → Pepe habla a cámara
   const VOICE_RE = /^\[\s*audio(\s*-\s*solo)?\s*\]\s*/i;   // «Pepe: [audio] texto» → nota de voz
   const REACT_RE = /\{\s*(?:reacci[oó]n(?:es)?|r)\s*:\s*([^}]*)\}\s*$/i;
   const px = (n) => `${Math.round(Number(n) * 100) / 100}px`;
@@ -169,6 +170,36 @@
     return { playing, prog, bars, time: Math.floor(left / 60) + ':' + String(left % 60).padStart(2, '0') };
   };
 
+  /* ───────────────────────── Confesionario ───────────────────────── */
+
+  /** Confesionario en el instante ms: volumen de la voz (onda real si la hay), karaoke y tiempo dentro de la escena. */
+  C.confessionView = (p, e, ms) => {
+    const popup = Math.max(0, Number(p.popupDelay ?? 0.35)) * 1000;
+    const start = e.visibleStart + (e.audio ? popup : 0);
+    const dur = e.audio && Number(e.audioDuration) > 0 ? Number(e.audioDuration) * 1000 : Math.max(800, e.end - e.visibleStart - 700);
+    const t = ms - start, k = clamp(t / dur, 0, 1);
+    let amp = 0;
+    if (t >= 0 && t < dur) {
+      const pk = Array.isArray(e.peaks) && e.peaks.length ? e.peaks : null;
+      if (pk) { const i = k * (pk.length - 1), a = Math.floor(i), b = Math.min(pk.length - 1, a + 1); amp = clamp((Number(pk[a]) || 0) + ((Number(pk[b]) || 0) - (Number(pk[a]) || 0)) * (i - a), 0, 1); }
+      else amp = 0.4 + 0.3 * Math.abs(Math.sin(t / 95));
+    }
+    // Karaoke: cada palabra se ilumina según su peso (letras) dentro de la duración de la voz.
+    const segs = [];
+    C.richText(e.text).forEach((sg) => sg.t.split(/(\s+)/).forEach((x) => { if (x) segs.push({ t: x, hi: sg.hi, space: !x.trim() }); }));
+    const total = segs.reduce((a, x) => a + (x.space ? 0 : x.t.length + 1), 0) || 1;
+    let acc = 0;
+    const words = segs.map((x) => {
+      if (x.space) return { ...x, state: 'space' };
+      const a0 = acc; acc += x.t.length + 1;
+      const done = k * total;
+      return { ...x, state: done >= acc ? 'past' : done >= a0 ? 'current' : 'future' };
+    });
+    const secs = Math.floor(ms / 1000), fr = Math.floor((ms % 1000) / (1000 / 30));
+    const timecode = `00:${String(Math.floor(secs / 60)).padStart(2, '0')}:${String(secs % 60).padStart(2, '0')}:${String(fr).padStart(2, '0')}`;
+    return { amp, words, timecode, local: ms - e.start, len: e.end - e.start };
+  };
+
   /** Estado visual de una fila de mensaje en el fotograma f (quién habla, quién se atenúa, foto agrupada…). */
   C.rowState = (p, f, e, ms) => {
     const fx = C.fx(p);
@@ -256,19 +287,21 @@
         if (t) out.scriptEvents.push({ id: 'script-' + out.scriptEvents.length, type: 'custom', afterMessage: idx, order, text: t, speech: t });
         continue;
       }
-      const p = line.indexOf(':');
+      const confession = CONF_RE.test(line);
+      const body = confession ? line.replace(CONF_RE, '') : line;
+      const p = body.indexOf(':');
       if (p < 0) continue;
-      const name = line.slice(0, p).trim();
+      const name = body.slice(0, p).trim();
       const c = C.findChar(chars, name);
       if (!c) { if (name && name.length <= 40 && !out.unknownNames.includes(name)) out.unknownNames.push(name); continue; }
-      let text = line.slice(p + 1).trim();
+      let text = body.slice(p + 1).trim();
       let voiceNote = null;
       const vm = text.match(VOICE_RE);
       if (vm) { voiceNote = vm[1] ? 'solo' : 'transcript'; text = text.replace(VOICE_RE, '').trim(); }
       let reactions = [];
       const rm = text.match(REACT_RE);
       if (rm) { reactions = C.parseReactions(rm[1]); text = text.replace(REACT_RE, '').trim(); }
-      out.messages.push({ char: c, text, reactions, voiceNote, lineIndex: idx++ });
+      out.messages.push({ char: c, text, reactions, voiceNote, confession, lineIndex: idx++ });
     }
     out.initialTitle = out.titles.length ? out.titles[0].text : '';
     return out;
@@ -464,15 +497,16 @@
       const audioMissing = hasVoices && !secs && !!C.ttsText(m.text);
       if (audioMissing) missingAudio++;
       const start = cursor + d;
-      const visibleStart = start + t;
+      const visibleStart = start + (m.confession ? 0 : t);   // el confesionario no tiene «escribiendo…»
       let end = secs ? Math.max(visibleStart + v, visibleStart + popup + secs * 1000) : visibleStart + v;
+      if (m.confession) end += 700;   // un respiro antes de volver al chat
       let reactAt = null;
       if (m.reactions.length) {
         // Las reacciones aparecen cuando termina la voz del mensaje.
         reactAt = Math.max(visibleStart + 500, end - 600);
         end = Math.max(end, reactAt + 700);
       }
-      out.push({ kind: 'message', key: 'msg-' + m.lineIndex, char: m.char, side, text: m.text, reactions: m.reactions, reactAt, lineIndex: m.lineIndex, voiceNote: m.voiceNote, peaks: dm && Array.isArray(dm.peaks) ? dm.peaks : null, start, typingStart: start, visibleStart, end, audio: secs ? dm.audio : null, audioDuration: secs, audioMissing });
+      out.push({ kind: 'message', key: 'msg-' + m.lineIndex, char: m.char, side, text: m.text, reactions: m.reactions, reactAt, lineIndex: m.lineIndex, voiceNote: m.voiceNote, confession: m.confession, peaks: dm && Array.isArray(dm.peaks) ? dm.peaks : null, start, typingStart: start, visibleStart, end, audio: secs ? dm.audio : null, audioDuration: secs, audioMissing });
       cursor = end;
     }
     const totalMs = out.length ? out[out.length - 1].end : 1000;
@@ -497,14 +531,17 @@
       const c = turn ? { ...e.char, side: e.side } : e.char;
       return { ...e, char: fit ? fitChar(c) : c };
     };
-    let shown = events.filter((e) => (e.kind === 'message' || e.kind === 'system') && ms >= e.visibleStart).map(withSide);
+    // Confesionario: ocupa toda la pantalla mientras dura; su mensaje no entra en el chat.
+    const confession = events.find((e) => e.confession && ms >= e.start && ms < e.end);
+    if (confession) return { confession, intro: null, shown: [], typing: null, header: null, sig: 'conf-' + confession.key, animating: true };
+    let shown = events.filter((e) => (e.kind === 'message' || e.kind === 'system') && !e.confession && ms >= e.visibleStart).map(withSide);
     const fx = C.fx(p);
     // Mensajes seguidos de la misma persona: la foto solo en el último (como en las apps de chat).
     if (fx.details) shown = shown.map((e, i) => {
       const n = shown[i + 1];
       return e.kind === 'message' && n && n.kind === 'message' && n.char && e.char && n.char.name === e.char.name ? { ...e, hideAvatar: true } : e;
     });
-    const typing = withSide(events.find((e) => e.kind === 'message' && ms >= e.typingStart && ms < e.visibleStart) || null);
+    const typing = withSide(events.find((e) => e.kind === 'message' && !e.confession && ms >= e.typingStart && ms < e.visibleStart) || null);
     let name = String(p.groupName || 'Chat de grupo').trim() || 'Chat de grupo';
     let count = Math.max(0, Number(p.groupMembers ?? 24) || 0);
     let lastMessage = null, animating = false, reacted = 0;
@@ -720,6 +757,39 @@
     /** Palabra resaltada con *asteriscos*: efecto rotulador. */
     highlight: () => ({ background: 'rgba(255,224,102,.96)', color: '#1b1b1b', borderRadius: '.22em', padding: '0 .16em', WebkitTextStroke: '0px', textShadow: 'none', WebkitBoxDecorationBreak: 'clone', boxDecorationBreak: 'clone' }),
     /** Fondo vivo: brillo del color de quien habla en su lado + patrón de puntos muy suave. */
+    /* Confesionario: plano «a cámara» de un solo personaje. */
+    confRoot: () => ({ position: 'absolute', inset: '0px', overflow: 'hidden', background: '#120d0c' }),
+    confCamera: (p, v) => ({ position: 'absolute', inset: '0px', transform: `scale(${(1 + 0.06 * clamp(v.local / Math.max(1, v.len), 0, 1)).toFixed(4)})`, transformOrigin: C.isVertical(p) ? '50% 32%' : '38% 45%' }),
+    confBackdrop: () => ({ position: 'absolute', left: '-80px', top: '-80px', width: 'calc(100% + 160px)', height: 'calc(100% + 160px)', objectFit: 'cover', filter: 'blur(46px) brightness(.32) saturate(1.3)' }),
+    confGlow: (p, c) => {
+      const col = C.solidColor(c.color || '#ff5d83');
+      return { position: 'absolute', inset: '0px', background: `radial-gradient(circle at ${C.isVertical(p) ? '50% 30%' : '36% 44%'}, ${rgba(col, 0.33)} 0%, transparent 45%), radial-gradient(ellipse at center, transparent 45%, rgba(0,0,0,.75) 100%)` };
+    },
+    confPhotoBox: (p, v) => {
+      const V = C.isVertical(p), size = V ? 640 : 600;
+      return { position: 'absolute', left: px(V ? (1080 - size) / 2 : 460), top: px(V ? 330 : 150), width: px(size), height: px(size), transform: `translateY(${px(-v.amp * 26)}) scale(${(1 + v.amp * 0.05).toFixed(4)})`, transformOrigin: 'center bottom' };
+    },
+    confPhoto: (p, c, v) => {
+      const size = C.isVertical(p) ? 640 : 600, col = C.solidColor(c.color || '#ff5d83');
+      return { width: px(size), height: px(size), objectFit: 'contain', filter: `drop-shadow(0 0 ${Math.round(30 + v.amp * 40)}px ${rgba(col, 0.8)}) drop-shadow(0 30px 40px rgba(0,0,0,.6))` };
+    },
+    confInfo: (p) => (C.isVertical(p)
+      ? { position: 'absolute', left: '0px', right: '0px', top: '1010px', textAlign: 'center', fontFamily: fontOf(p) }
+      : { position: 'absolute', left: '1110px', top: '330px', fontFamily: fontOf(p) }),
+    confLabel: () => ({ fontSize: '30px', fontWeight: '800', letterSpacing: '6px', color: 'rgba(255,255,255,.7)' }),
+    confName: (p, c) => ({ marginTop: '14px', display: 'inline-block', background: c.color || '#ff5d83', color: c.textColor || '#fff', fontSize: '78px', fontWeight: '900', padding: '10px 40px', borderRadius: '999px', boxShadow: '0 12px 30px rgba(0,0,0,.45)', WebkitTextStroke: '0px' }),
+    confSubWrap: (p) => ({ position: 'absolute', left: '40px', right: '40px', bottom: px(C.isVertical(p) ? 330 : 70), display: 'flex', justifyContent: 'center' }),
+    confSub: (p) => ({ maxWidth: C.isVertical(p) ? '1000px' : '1500px', background: 'rgba(0,0,0,.62)', borderRadius: '26px', padding: '22px 44px', fontFamily: fontOf(p), fontSize: px(C.isVertical(p) ? 58 : 60), fontWeight: '800', color: '#fff', textAlign: 'center', lineHeight: '1.2', whiteSpace: 'pre-wrap' }),
+    confWord: (w) => ({ ...(w.hi ? C.styles.highlight() : {}), opacity: w.state === 'future' ? '0.35' : '1', ...(w.state === 'current' && !w.hi ? { color: '#ffe066' } : {}) }),
+    confRec: (p) => ({ position: 'absolute', left: '70px', top: px(C.isVertical(p) ? 110 : 56), fontFamily: 'Arial, sans-serif', fontSize: '34px', fontWeight: '800', color: '#fff', display: 'flex', alignItems: 'center', gap: '12px' }),
+    confRecDot: (ms) => ({ width: '24px', height: '24px', borderRadius: '12px', background: '#ff2d2d', opacity: Math.floor(ms / 500) % 2 === 0 ? '1' : '0.15', boxShadow: '0 0 14px #ff2d2d' }),
+    confTimecode: (p) => ({ position: 'absolute', right: '70px', top: px(C.isVertical(p) ? 110 : 56), fontFamily: '"Courier New", monospace', fontSize: '32px', fontWeight: '700', color: 'rgba(255,255,255,.85)' }),
+    confCorner: (p, i) => {
+      const top = C.isVertical(p) ? 90 : 40, bottom = C.isVertical(p) ? 280 : 40, b = '5px solid rgba(255,255,255,.75)';
+      const pos = [{ left: '40px', top: px(top), borderLeft: b, borderTop: b }, { right: '40px', top: px(top), borderRight: b, borderTop: b }, { left: '40px', bottom: px(bottom), borderLeft: b, borderBottom: b }, { right: '40px', bottom: px(bottom), borderRight: b, borderBottom: b }][i];
+      return { position: 'absolute', width: '70px', height: '70px', ...pos };
+    },
+    confFlash: (v) => ({ position: 'absolute', inset: '0px', background: '#fff', opacity: String(Math.max(0, 1 - v.local / 220)) }),
     fxBackground: (f) => ({
       position: 'absolute', inset: '0px', zIndex: '0', pointerEvents: 'none',
       backgroundImage: (f.bgFx ? `radial-gradient(circle at ${f.bgFx.x.toFixed(2)}% 62%, ${rgba(f.bgFx.color, 0.34)} 0%, ${rgba(f.bgFx.color, 0)} 58%), ` : '') + 'radial-gradient(rgba(255,255,255,.055) 2px, transparent 2.6px)',

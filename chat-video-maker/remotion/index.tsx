@@ -90,6 +90,33 @@ const Message: React.FC<{p: Project; f: any; e: any; isLast: boolean; ms: number
   );
 };
 
+/** Confesionario: un personaje solo, «hablando a cámara». */
+const Confession: React.FC<{p: Project; e: any; ms: number}> = ({p, e, ms}) => {
+  const c = e.char, v = C.confessionView(p, e, ms), img = asset(c.image) || C.BLANK_IMG;
+  return (
+    <div style={C.styles.confRoot()}>
+      <div style={C.styles.confCamera(p, v)}>
+        <Img src={img} style={C.styles.confBackdrop()} />
+        <div style={C.styles.confGlow(p, c)} />
+        <div style={C.styles.confPhotoBox(p, v)}><Img src={img} style={C.styles.confPhoto(p, c, v)} /></div>
+        <div style={C.styles.confInfo(p)}>
+          <div style={C.styles.confLabel()}>🎥 CONFESIONARIO</div>
+          <div style={C.styles.confName(p, c)}>{c.name}</div>
+        </div>
+      </div>
+      <div style={C.styles.confSubWrap(p)}>
+        <div style={C.styles.confSub(p)}>
+          {v.words.map((w: any, i: number) => (w.state === 'space' ? <React.Fragment key={i}>{w.t}</React.Fragment> : <span key={i} style={C.styles.confWord(w)}>{w.t}</span>))}
+        </div>
+      </div>
+      <div style={C.styles.confRec(p)}><span style={C.styles.confRecDot(ms)} />REC</div>
+      <div style={C.styles.confTimecode(p)}>{v.timecode}</div>
+      {[0, 1, 2, 3].map((i) => <div key={i} style={C.styles.confCorner(p, i)} />)}
+      {v.local < 220 ? <div style={C.styles.confFlash(v)} /> : null}
+    </div>
+  );
+};
+
 /** Dibuja el chat en el instante ms. */
 const ChatFrame: React.FC<{project: Project; events: any[]; ms: number}> = ({project, events, ms}) => {
   const {width} = useVideoConfig();
@@ -99,7 +126,7 @@ const ChatFrame: React.FC<{project: Project; events: any[]; ms: number}> = ({pro
   return (
     <AbsoluteFill style={C.styles.background({...project, __bgUrl: asset(project.bgImage)})}>
       <div style={C.styles.canvas(project, scale)}>
-        {f.intro ? (
+        {f.confession ? <Confession p={project} e={f.confession} ms={ms} /> : f.intro ? (
           <div style={C.styles.introWrap(project)}>
             <div style={C.styles.introText(project)}>{f.intro.text}</div>
           </div>
