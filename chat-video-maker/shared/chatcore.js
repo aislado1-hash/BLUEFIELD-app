@@ -31,11 +31,20 @@
   /** Lienzo virtual: 1920×1080 (horizontal) o 1080×1920 (vertical 9:16). */
   C.canvasSize = (p) => (C.isVertical(p) ? { w: 1080, h: 1920 } : { w: 1920, h: 1080 });
 
+  /** Ajuste automático del formato vertical (Shorts): activado salvo que se apague (p.autoFit === false). */
+  C.autoFit = (p) => C.isVertical(p) && p.autoFit !== false;
+  C.FIT_MAX = { bubbleSize: 130, size: 140 };   // tope de burbuja (%) y foto (px) en vertical con ajuste automático
+
   const layoutOf = (p) => C.isVertical(p)
-    ? { // 9:16 — márgenes pensados para la interfaz de TikTok / Reels / Shorts
-        safeTop: 90, padX: 24, innerX: 8, bottom: 300, lanes: 'minmax(160px,17%) minmax(0,66%) minmax(160px,17%)',
-        bubbleMax: '100%', textMax: '960px', headerPadX: 36, introPad: 60, nameMax: 170,
-      }
+    ? (C.autoFit(p)
+      ? { // 9:16 con ajuste automático: columnas de foto más estrechas para que la burbuja tenga más ancho
+          safeTop: 90, padX: 20, innerX: 6, bottom: 300, lanes: 'minmax(0,15%) minmax(0,70%) minmax(0,15%)',
+          bubbleMax: '100%', textMax: '960px', headerPadX: 30, introPad: 60, nameMax: 150,
+        }
+      : { // 9:16 — márgenes pensados para la interfaz de TikTok / Reels / Shorts
+          safeTop: 90, padX: 24, innerX: 8, bottom: 300, lanes: 'minmax(160px,17%) minmax(0,66%) minmax(160px,17%)',
+          bubbleMax: '100%', textMax: '960px', headerPadX: 36, introPad: 60, nameMax: 170,
+        })
     : { safeTop: 0, padX: 70, innerX: 20, bottom: 70, lanes: 'minmax(220px,20%) minmax(0,60%) minmax(220px,20%)',
         bubbleMax: '1120px', textMax: '1600px', headerPadX: 70, introPad: 80, nameMax: 220 };
 
@@ -446,7 +455,19 @@
     const intro = events.find((e) => e.kind === 'intro' && ms >= e.start && ms < e.end);
     if (intro) return { intro, shown: [], typing: null, header: null, sig: intro.key, animating: false };
     // Lado del turno aplicado sobre el personaje ACTUAL (sin copias guardadas).
-    const withSide = (e) => (e && e.kind === 'message' && e.side && e.char && e.char.side !== e.side) ? { ...e, char: { ...e.char, side: e.side } } : e;
+    // En vertical con ajuste automático, burbuja y foto se limitan para que quepan (sin tocar el personaje guardado).
+    const fit = C.autoFit(p);
+    const fitChar = (c) => ({ ...c,
+      bubbleSize: Math.min(Number(c.bubbleSize) || 100, C.FIT_MAX.bubbleSize),
+      size: Math.min(Number(c.size) || 150, C.FIT_MAX.size),
+      photoX: clamp(Number(c.photoX) || 0, -30, 30) });
+    const withSide = (e) => {
+      if (!e || e.kind !== 'message' || !e.char) return e;
+      const turn = e.side && e.char.side !== e.side;
+      if (!turn && !fit) return e;
+      const c = turn ? { ...e.char, side: e.side } : e.char;
+      return { ...e, char: fit ? fitChar(c) : c };
+    };
     let shown = events.filter((e) => (e.kind === 'message' || e.kind === 'system') && ms >= e.visibleStart).map(withSide);
     const fx = C.fx(p);
     // Mensajes seguidos de la misma persona: la foto solo en el último (como en las apps de chat).
@@ -571,7 +592,7 @@
   /** Tamaño del nombre: el elegido; con «Texto limpio», salvo que su palabra más larga no quepa bajo la foto (entonces se reduce, sin partirla). */
   const nameFontSize = (p, c) => {
     const size = Number(c.nameSize) || 30;
-    if (!C.fx(p).text) return size;   // sin efectos, igual que siempre
+    if (!C.fx(p).text && !C.autoFit(p)) return size;   // sin efectos ni ajuste, igual que siempre
     // Ancho aproximado en «em» de cada palabra (letras anchas, mayúsculas, estrechas y el resto), con margen.
     const em = (w) => Array.from(w).reduce((a, ch) => a + (/[mwMW@]/.test(ch) ? 0.9 : /[A-ZÁÉÍÓÚÑ]/.test(ch) ? 0.74 : /[iljtfrI.,'!|ií]/.test(ch) ? 0.34 : 0.6), 0) * 1.08;
     const longest = Math.max(0.6, ...String(c.name || '').split(/\s+/).map(em));
@@ -604,9 +625,9 @@
     }),
     header: (p) => {
       const t = C.theme(p), L = layoutOf(p);
-      return { position: 'absolute', left: '0px', right: '0px', top: '0px', height: px(headerSizeOf(p) + L.safeTop), paddingTop: px(L.safeTop), paddingLeft: px(L.headerPadX), paddingRight: px(L.headerPadX), display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center', boxSizing: 'border-box', background: t.headerBg, borderBottom: t.headerBorder, zIndex: '5' };
+      return { position: 'absolute', left: '0px', right: '0px', top: '0px', height: px(headerSizeOf(p) + L.safeTop), paddingTop: px(L.safeTop), paddingLeft: px(L.headerPadX), paddingRight: px(L.headerPadX), display: 'grid', gridTemplateColumns: C.fx(p).header ? 'minmax(0,1fr) minmax(0,2.4fr) minmax(0,1fr)' : '1fr auto 1fr', columnGap: C.fx(p).header ? '12px' : '0px', alignItems: 'center', boxSizing: 'border-box', background: t.headerBg, borderBottom: t.headerBorder, zIndex: '5' };
     },
-    headerName: (p) => ({ gridColumn: '2', fontFamily: fontOf(p), fontSize: px(34 * headerSizeOf(p) / 108), fontWeight: '800', color: C.theme(p).headerText, textAlign: 'center', maxWidth: C.isVertical(p) ? '620px' : '1400px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }),
+    headerName: (p) => ({ gridColumn: '2', fontFamily: fontOf(p), fontSize: px(34 * headerSizeOf(p) / 108), fontWeight: '800', color: C.theme(p).headerText, textAlign: 'center', maxWidth: C.fx(p).header ? '100%' : C.isVertical(p) ? '620px' : '1400px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }),
     headerMembers: (p) => ({ gridColumn: '3', justifySelf: 'end', fontFamily: fontOf(p), fontSize: px(22 * headerSizeOf(p) / 108), fontWeight: '700', color: C.theme(p).headerSub, whiteSpace: 'nowrap' }),
     chatOuter: (p) => {
       const L = layoutOf(p);
@@ -673,11 +694,11 @@
     }),
     headerLeft: () => ({ gridColumn: '1', display: 'flex', alignItems: 'center', minWidth: '0px' }),
     headerAvatar: (p, i) => {
-      const sz = Math.round(headerSizeOf(p) * 0.6);
-      return { width: px(sz), height: px(sz), borderRadius: '50%', objectFit: 'cover', marginLeft: i ? px(-sz * 0.28) : '0px', border: '3px solid rgba(10,13,19,.95)', background: '#1b2130', boxShadow: '0 4px 10px rgba(0,0,0,.35)' };
+      const sz = Math.round(headerSizeOf(p) * (C.isVertical(p) ? 0.52 : 0.6));
+      return { width: px(sz), height: px(sz), flex: '0 0 auto', borderRadius: '50%', objectFit: 'cover', marginLeft: i ? px(-sz * (C.isVertical(p) ? 0.4 : 0.28)) : '0px', border: '3px solid rgba(10,13,19,.95)', background: '#1b2130', boxShadow: '0 4px 10px rgba(0,0,0,.35)' };
     },
-    headerCenter: () => ({ gridColumn: '2', display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: '0px' }),
-    headerSubtitle: (p, typing) => ({ fontFamily: fontOf(p), fontSize: px(20 * headerSizeOf(p) / 108), fontWeight: '700', color: typing ? '#6ee7a0' : C.theme(p).headerSub, marginTop: px(4 * headerSizeOf(p) / 108), maxWidth: C.isVertical(p) ? '600px' : '1300px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }),
+    headerCenter: () => ({ gridColumn: '2', display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: '0px', width: '100%' }),
+    headerSubtitle: (p, typing) => ({ fontFamily: fontOf(p), fontSize: px(20 * headerSizeOf(p) / 108), fontWeight: '700', color: typing ? '#6ee7a0' : C.theme(p).headerSub, marginTop: px(4 * headerSizeOf(p) / 108), maxWidth: '100%', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }),
     reactions: (p, c, st) => {
       const s = bubbleScaleOf(c), t = C.theme(p);
       return {

@@ -23,6 +23,7 @@ evento: María cambió el título del grupo a Viaje a Madrid
 ```
 
 - `Titulo inicial:` se muestra centrado al principio, con su propio audio; el chat empieza 2 s después.
+- **Ajuste automático en vertical** (*05 · Exportar vídeo*, activado por defecto): en 9:16 las columnas de las fotos se estrechan, la burbuja se limita al 130 % y la foto a 140 px, y los nombres largos se reducen en vez de partirse. Los valores guardados del personaje no cambian; el horizontal queda igual.
 - **✨ Efectos visuales** (*00 · Estilo y cabecera*, cada uno se activa por separado; los proyectos nuevos los traen activados y los antiguos siguen como estaban):
   - *Texto limpio:* sin contorno negro, letra redondeada Nunito (necesita internet la primera vez; si no, usa una de respaldo).
   - *Colita y degradado:* la burbuja apunta a la foto de quien habla.
