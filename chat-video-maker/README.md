@@ -47,7 +47,6 @@ evento: María cambió el título del grupo a Viaje a Madrid
 
 ## Funciones principales
 
-- **Formato «Personajes hablando» (prototipo)** (*00 · Estilo y cabecera → Formato del vídeo*): con el mismo guion y las mismas voces, en vez del chat se ven los personajes grandes abajo; el que habla rebota y brilla con el volumen real de su voz, los demás se atenúan, y su frase sale en un bocadillo que se ilumina palabra a palabra. Los eventos aparecen arriba y los títulos igual que en el chat.
 - **Aviso al terminar los audios:** cuando acaban de generarse las voces (mensajes o eventos + título) suena un aviso y aparece una tarjeta con cuenta atrás. Si no pulsas **✕ Apagar aviso** (o Esc) en 10 s, se genera el MP4 solo. **🎬 Generar ya** lo lanza al momento. Se desactiva con la casilla de *05 · Exportar vídeo*.
 - **Formato vertical 9:16** (1080×1920 / 720×1280) para TikTok, Reels y Shorts, además de horizontal 16:9. Se elige en *05 · Exportar vídeo*.
 - **Plantillas de estilo:** Clásico, WhatsApp, Telegram, Instagram DM y Discord (*00 · Estilo y cabecera*).

@@ -111,7 +111,6 @@ input[type=color]{width:100%;height:40px;padding:4px;background:var(--input);bor
 <details class="sectionDetails" open>
 <summary>00 · Estilo y cabecera</summary>
 <div class="sectionBody">
-<div class="row"><div class="field"><label>Formato del vídeo</label><select id="videoMode"><option value="chat">💬 Chat de grupo</option><option value="talk">🗣️ Personajes hablando (prototipo)</option></select></div></div>
 <div class="row"><div class="field"><label>Plantilla de estilo</label><select id="themeSelect"></select></div><div class="field" style="flex:0 0 auto;align-self:flex-end"><button class="btn" id="themeApply">🎨 Aplicar a personajes y fondo</button></div></div>
 <div class="hint" style="margin:-4px 0 10px">La plantilla cambia cabecera, avisos, forma de las burbujas y tipografía. «Aplicar» además recolorea las burbujas (según el lado) y el fondo; luego puedes retocarlos a mano.</div>
 <div class="row">
@@ -410,7 +409,6 @@ $("bgFile").onchange=async e=>{const f=e.target.files?.[0];e.target.value="";if(
 ["delay","typing","duration","anim","fps","sideMode"].forEach(id=>$(id).oninput=()=>{buildTimeline();renderAt(currentTime)});
 $("renderSpeed").oninput=()=>scheduleSave();
 $("autoFit").onchange=()=>{buildTimeline();renderAt(currentTime)};
-$("videoMode").onchange=()=>{buildTimeline();renderAt(currentTime);schedulePeaks()};
 $("soundFile").onchange=async e=>{const f=e.target.files[0];e.target.value="";if(!f)return;try{state.sound=await uploadAsset("sound",await readFileAsDataURL(f));state.audioBuffer=null;syncSoundStatus(f.name);scheduleSave()}catch(err){$("soundStatus").textContent="Error al guardar el sonido: "+err.message}};
 /* Música de fondo */
 function syncMusic(){$("musicVolume").value=state.musicVolume;$("musicDuck").value=state.musicDuck;$("musicVolumeLabel").textContent=state.musicVolume+"%";$("musicDuckLabel").textContent=state.musicDuck+"%";$("musicRemove").disabled=!state.music;$("musicStatus").textContent=state.music?`🎵 ${state.musicName||"Música cargada"} · suena en bucle todo el vídeo y baja al ${state.musicDuck}% mientras hablan las voces.`:"Sin música. Suena en bucle todo el vídeo y baja sola mientras hablan las voces."}
@@ -439,7 +437,7 @@ $("clearGroupEvents").onclick=()=>{state.groupEvents=state.groupEvents.filter(e=
 
 /* ───────── Proyecto y línea de tiempo ───────── */
 let events=[],cues=[],totalMs=0,currentTime=0;
-function project(){const res=$("resolution")?.value||"1920x1080";const [videoWidth,videoHeight]=res.split("x").map(Number);return{projectSlug:state.projectSlug||"",projectName:state.projectName||"",videoWidth,videoHeight,groupName:state.groupName,groupMembers:state.groupMembers,headerSize:state.headerSize,initialTitle:state.initialTitle,initialTitleAudio:state.initialTitleAudio,initialTitleAudioCacheKey:state.initialTitleAudioCacheKey||"",initialTitleDuration:state.initialTitleDuration,titleAudios:state.titleAudios,fx:{...state.fx},initialTitleFont:state.initialTitleFont,initialTitleSize:state.initialTitleSize,initialTitleColor:state.initialTitleColor,initialTitleStrokeColor:state.initialTitleStrokeColor,initialTitleStroke:state.initialTitleStroke,eventSize:state.eventSize,groupEvents:state.groupEvents,chars:Object.values(state.chars),script:$("script").value,delay:+$("delay").value||0,typing:+$("typing").value||0,duration:+$("duration").value||2.2,anim:$("anim").value,sideMode:$("sideMode").value,bg:state.bgColor,bgColor:state.bgColor,bgImage:state.bgImage,bgFit:state.bgFit,fps:+$("fps").value||30,sound:state.sound,music:state.music,musicName:state.musicName||"",musicVolume:state.musicVolume,musicDuck:state.musicDuck,dialogueMessages:state.dialogueMessages,popupDelay:0.35,theme:state.theme||"clasico",renderSpeed:$("renderSpeed").value,autoFit:$("autoFit").checked,mode:$("videoMode").value}}
+function project(){const res=$("resolution")?.value||"1920x1080";const [videoWidth,videoHeight]=res.split("x").map(Number);return{projectSlug:state.projectSlug||"",projectName:state.projectName||"",videoWidth,videoHeight,groupName:state.groupName,groupMembers:state.groupMembers,headerSize:state.headerSize,initialTitle:state.initialTitle,initialTitleAudio:state.initialTitleAudio,initialTitleAudioCacheKey:state.initialTitleAudioCacheKey||"",initialTitleDuration:state.initialTitleDuration,titleAudios:state.titleAudios,fx:{...state.fx},initialTitleFont:state.initialTitleFont,initialTitleSize:state.initialTitleSize,initialTitleColor:state.initialTitleColor,initialTitleStrokeColor:state.initialTitleStrokeColor,initialTitleStroke:state.initialTitleStroke,eventSize:state.eventSize,groupEvents:state.groupEvents,chars:Object.values(state.chars),script:$("script").value,delay:+$("delay").value||0,typing:+$("typing").value||0,duration:+$("duration").value||2.2,anim:$("anim").value,sideMode:$("sideMode").value,bg:state.bgColor,bgColor:state.bgColor,bgImage:state.bgImage,bgFit:state.bgFit,fps:+$("fps").value||30,sound:state.sound,music:state.music,musicName:state.musicName||"",musicVolume:state.musicVolume,musicDuck:state.musicDuck,dialogueMessages:state.dialogueMessages,popupDelay:0.35,theme:state.theme||"clasico",renderSpeed:$("renderSpeed").value,autoFit:$("autoFit").checked}}
 function buildTimeline(){
   syncScriptState();
   state.lastProject=project();
@@ -462,7 +460,7 @@ function buildTimeline(){
   if(r.missingAudio)warns.push(`⚠ ${r.missingAudio} ${r.missingAudio===1?"mensaje ha cambiado y no tiene":"mensajes han cambiado y no tienen"} voz. Pulsa «Generar voces»: solo se generan los que faltan.`);
   $("scriptWarn").innerHTML=warns.map(w=>`<div class="warn">${w}</div>`).join("");
   if($("createFromScript"))$("createFromScript").onclick=()=>createCharactersFromScript(false);
-  if(events.some(e=>e.kind==="message"&&(e.voiceNote||state.lastProject.mode==="talk")&&e.audio&&!Array.isArray(e.peaks)))schedulePeaks();
+  if(events.some(e=>e.voiceNote&&e.audio&&!Array.isArray(e.peaks)))schedulePeaks();
     lastSig="";scheduleSave();
 }
 
@@ -476,8 +474,6 @@ function renderAt(ms,force=true,save=force){
   if(force||!state.lastProject)state.lastProject=project();
   const p=state.lastProject,f=C.frameAt(p,events,ms);
   updateSeekUI(ms);
-  const tf=C.isTalk(p)?C.talkFrame(p,events,ms):null;
-  if(tf&&!tf.intro){lastSig="";drawTalk(p,tf);highlightTimeline(ms);if(save)scheduleSave();return}
   if(!force&&f.sig===lastSig&&!f.animating&&!lastAnimating){highlightTimeline(ms);return}
   lastSig=f.sig;lastAnimating=f.animating;
   const canvas=$("previewCanvas");
@@ -516,17 +512,6 @@ function renderAt(ms,force=true,save=force){
   }
   highlightTimeline(ms);
   if(save)scheduleSave();
-}
-
-/* ───────── Formato «Personajes hablando» ───────── */
-function drawTalk(p,tf){
-  const canvas=$("previewCanvas");css(canvas,C.styles.background({...p,__bgUrl:p.bgImage||null}));canvas.replaceChildren();
-  if(C.fx(p).bg&&!p.bgImage)canvas.append(h("div",C.styles.fxBackground(tf)));
-  if(tf.sys){const w=h("div",C.styles.talkSystem(p));w.append(h("div",C.styles.talkSystemText(p),C.systemText(tf.sys.text,{...p,theme:"whatsapp"})));canvas.append(w)}
-  for(const c of tf.cast){const box=h("div",C.styles.talkCast(p,c)),im=h("img",C.styles.talkImg(p,c));im.src=c.char.image||C.BLANK_IMG;im.draggable=false;box.append(im,h("div",C.styles.talkName(p,c),c.char.name));canvas.append(box)}
-  if(tf.current){const wrap=h("div",C.styles.talkBubbleWrap(p,tf)),bub=h("div",C.styles.talkBubble(p,tf));bub.append(h("div",C.styles.talkTail(p,tf)));
-    tf.words.forEach(w=>bub.append(w.state==="space"?document.createTextNode(w.t):h("span",{...(w.hi?C.styles.highlight():{}),...C.styles.talkWord(w)},w.t)));
-    wrap.append(bub);canvas.append(wrap)}
 }
 
 /* ───────── Saltar a un momento ───────── */
@@ -646,8 +631,7 @@ let peaksBusy=false,peaksTimer=0;
 /** Analiza (una vez) el audio de cada nota de voz y guarda su onda en el proyecto. */
 async function ensureVoicePeaks(){
   if(peaksBusy)return;peaksBusy=true;let changed=false;
-  const talk=$("videoMode").value==="talk";
-  try{for(const e of events.filter(e=>e.kind==="message"&&(e.voiceNote||talk)&&e.audio&&!Array.isArray(e.peaks))){
+  try{for(const e of events.filter(e=>e.kind==="message"&&e.voiceNote&&e.audio&&!Array.isArray(e.peaks))){
     const same=state.dialogueMessages.filter(x=>x&&x.audio===e.audio);if(!same.length)continue;
     let peaks=(same.find(x=>Array.isArray(x.peaks))||{}).peaks;
     if(!peaks){try{peaks=await computePeaks(e.audio)}catch(err){console.warn("No se pudo analizar el audio",err);peaks=[]}}
@@ -758,7 +742,7 @@ function applyProjectData(rp){
   state.bgColor=typeof rp.bgColor==="string"?rp.bgColor:(typeof rp.bg==="string"?rp.bg:state.bgColor);state.bgImage=rp.bgImage||null;state.bgFit=rp.bgFit||"cover";
   if(rp.delay!=null)$("delay").value=rp.delay;if(rp.typing!=null)$("typing").value=rp.typing;if(rp.duration!=null)$("duration").value=rp.duration;if(rp.anim)$("anim").value=rp.anim;$("sideMode").value=rp.sideMode==="fixed"?"fixed":"alternate";if(rp.fps)$("fps").value=rp.fps;
   state.sound=rp.sound||null;state.music=rp.music||null;state.musicName=rp.musicName||"";state.musicVolume=rp.musicVolume!=null?Number(rp.musicVolume):25;state.musicDuck=rp.musicDuck!=null?Number(rp.musicDuck):8;state.dialogueMessages=rp.dialogueMessages||[];
-  state.theme=C.THEMES[rp.theme]?rp.theme:"clasico";if(rp.renderSpeed)$("renderSpeed").value=rp.renderSpeed;$("autoFit").checked=rp.autoFit!==false;$("videoMode").value=rp.mode==="talk"?"talk":"chat";
+  state.theme=C.THEMES[rp.theme]?rp.theme:"clasico";if(rp.renderSpeed)$("renderSpeed").value=rp.renderSpeed;$("autoFit").checked=rp.autoFit!==false;
   if(state.dialogueMessages.length)$("ai33Status").textContent=`✓ ${state.dialogueMessages.length} audios de mensajes cargados del proyecto.`;
   syncChatHeader();syncBackground();syncTitleInputs();syncSoundStatus();syncMusic();syncResolutionBadge();syncThemeSelect();syncEventFields();sync();drawChars();buildTimeline();fitPreviewCanvas();renderGroupEvents();renderAt(0);
 }

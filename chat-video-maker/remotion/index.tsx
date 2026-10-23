@@ -90,44 +90,12 @@ const Message: React.FC<{p: Project; f: any; e: any; isLast: boolean; ms: number
   );
 };
 
-/** Formato «Personajes hablando»: reparto abajo, bocadillo karaoke de quien habla. */
-const TalkFrame: React.FC<{project: Project; tf: any}> = ({project, tf}) => (
-  <>
-    {C.fx(project).bg && !project.bgImage ? <div style={C.styles.fxBackground(tf)} /> : null}
-    {tf.sys ? (
-      <div style={C.styles.talkSystem(project)}><div style={C.styles.talkSystemText(project)}>{C.systemText(tf.sys.text, {...project, theme: 'whatsapp'})}</div></div>
-    ) : null}
-    {tf.cast.map((c: any) => (
-      <div key={c.char.name} style={C.styles.talkCast(project, c)}>
-        <Img src={asset(c.char.image) || C.BLANK_IMG} style={C.styles.talkImg(project, c)} />
-        <div style={C.styles.talkName(project, c)}>{c.char.name}</div>
-      </div>
-    ))}
-    {tf.current ? (
-      <div style={C.styles.talkBubbleWrap(project, tf)}>
-        <div style={C.styles.talkBubble(project, tf)}>
-          <div style={C.styles.talkTail(project, tf)} />
-          {tf.words.map((w: any, i: number) => (w.state === 'space' ? <React.Fragment key={i}>{w.t}</React.Fragment> : <span key={i} style={{...(w.hi ? C.styles.highlight() : {}), ...C.styles.talkWord(w)}}>{w.t}</span>))}
-        </div>
-      </div>
-    ) : null}
-  </>
-);
-
 /** Dibuja el chat en el instante ms. */
 const ChatFrame: React.FC<{project: Project; events: any[]; ms: number}> = ({project, events, ms}) => {
   const {width} = useVideoConfig();
   const f = C.frameAt(project, events, ms);
   const scale = width / C.canvasSize(project).w;
   const hx = f.intro ? null : C.headerExtras(project, f);
-  const tf = C.isTalk(project) ? C.talkFrame(project, events, ms) : null;
-  if (tf && !tf.intro) {
-    return (
-      <AbsoluteFill style={C.styles.background({...project, __bgUrl: asset(project.bgImage)})}>
-        <div style={C.styles.canvas(project, scale)}><TalkFrame project={project} tf={tf} /></div>
-      </AbsoluteFill>
-    );
-  }
   return (
     <AbsoluteFill style={C.styles.background({...project, __bgUrl: asset(project.bgImage)})}>
       <div style={C.styles.canvas(project, scale)}>
