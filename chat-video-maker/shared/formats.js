@@ -211,20 +211,31 @@
 
   /* ───────────────────────── Piezas de dibujo ───────────────────────── */
 
-  /** Subtítulo palabra a palabra de la frase que suena. */
+  /** Subtítulo palabra a palabra de la frase que suena, siempre en UNA línea: la frase se parte en trozos que
+   *  caben en el ancho disponible y se muestra el trozo que se está diciendo. */
   const karaoke = (l, lt, box) => {
     if (!l) return null;
-    const parts = l.text.split(/(\s+)/), total = parts.reduce((a, w) => a + (w.trim() ? w.length + 1 : 0), 0) || 1;
-    const done = clamp01(lt / (l.dur * 1000)) * total;
-    let acc = 0;
-    const kids = parts.map((w) => {
-      if (!w.trim()) return w;
-      const a = acc; acc += w.length + 1;
-      const st = done >= acc ? 1 : done >= a ? 2 : 0;
-      return N('span', { opacity: st === 0 ? '0.35' : '1', color: st === 2 ? '#ffd166' : '#ffffff' }, w.replace(/\*/g, ''));
+    const size = box.size || 46;
+    const maxChars = Math.max(12, Math.floor((box.w - box.left - box.right - 80) / (size * 0.58)));
+    const words = l.text.replace(/\*/g, '').split(/\s+/).filter(Boolean);
+    // Trozos de una línea (por número de letras) y posición de cada palabra dentro del texto completo.
+    const chunks = [];
+    let cur = [], len = 0, pos = 0;
+    words.forEach((w) => {
+      if (cur.length && len + 1 + w.length > maxChars) { chunks.push(cur); cur = []; len = 0; }
+      cur.push({ w, a: pos, b: pos + w.length + 1 }); len += (cur.length > 1 ? 1 : 0) + w.length; pos += w.length + 1;
+    });
+    if (cur.length) chunks.push(cur);
+    const done = clamp01(lt / (l.dur * 1000)) * (pos || 1);
+    const chunk = chunks.find((c) => done < c[c.length - 1].b) || chunks[chunks.length - 1] || [];
+    const kids = [];
+    chunk.forEach((x, i) => {
+      if (i) kids.push(' ');
+      const st = done >= x.b ? 1 : done >= x.a ? 2 : 0;
+      kids.push(N('span', { opacity: st === 0 ? '0.35' : '1', color: st === 2 ? '#ffd166' : '#ffffff' }, x.w));
     });
     return N('div', { position: 'absolute', left: px(box.left), right: px(box.right), bottom: px(box.bottom), display: 'flex', justifyContent: 'center', zIndex: '20' }, [
-      N('div', { background: 'rgba(0,0,0,.62)', borderRadius: '20px', padding: '16px 34px', fontFamily: F.FONT, fontWeight: '800', fontSize: px(box.size || 46), color: '#fff', textAlign: 'center', lineHeight: '1.22', maxWidth: '1500px' }, kids),
+      N('div', { background: 'rgba(0,0,0,.62)', borderRadius: '20px', padding: '14px 34px', fontFamily: F.FONT, fontWeight: '800', fontSize: px(size), color: '#fff', textAlign: 'center', lineHeight: '1.22', whiteSpace: 'nowrap', overflow: 'hidden', maxWidth: '100%' }, kids),
     ]);
   };
 
@@ -260,7 +271,7 @@
         N('div', { marginTop: '20px', fontSize: px(V ? 96 : 116), fontWeight: '900', textAlign: 'center', lineHeight: '1.05', transform: `scale(${(0.7 + 0.3 * back(t / 700)).toFixed(3)})` }, seg.title),
         N('div', { marginTop: '40px', display: 'flex', gap: '26px', flexWrap: 'wrap', justifyContent: 'center' }, plan.items.slice().sort((a, b) => a.rank - b.rank).slice(0, 6).map((it, i) => {
           const src = imgs[F.imageKey('top', it.name)];
-          return N('div', { position: 'relative', width: '130px', height: '130px', borderRadius: '50%', overflow: 'hidden', background: 'rgba(255,255,255,.1)', border: '4px solid rgba(255,255,255,.25)', opacity: String(clamp01((t - 500 - i * 150) / 250)), transform: `translateY(${(Math.sin(t / 250 + i) * 10).toFixed(1)}px)`, filter: it.rank === 1 ? 'blur(10px)' : 'none' }, [picture(src, it.emoji, 80)]);
+          return N('div', { position: 'relative', width: '130px', height: '130px', borderRadius: '50%', overflow: 'hidden', background: 'rgba(255,255,255,.1)', border: '4px solid rgba(255,255,255,.25)', opacity: String(clamp01((t - 500 - i * 150) / 250)), transform: `translateY(${(Math.sin(t / 250 + i) * 10).toFixed(1)}px)`, filter: 'blur(10px)' }, [picture(src, it.emoji, 80)]);   // ocultas: se descubren en su puesto
         })),
       ]));
     }
@@ -289,7 +300,7 @@
           ]);
         })));
     }
-    if (seg.kind !== 'drum') kids.push(karaoke(l, lt, V ? { left: 50, right: 50, bottom: 300, size: 44 } : { left: 120, right: seg.kind === 'item' ? 420 : 120, bottom: 54 }));
+    if (seg.kind !== 'drum') kids.push(karaoke(l, lt, V ? { w: W, left: 50, right: 50, bottom: 300, size: 44 } : { w: W, left: 120, right: seg.kind === 'item' ? 420 : 120, bottom: 54 }));
     return N('div', { position: 'absolute', left: '0px', top: '0px', width: px(W), height: px(H), overflow: 'hidden', background: '#0d1321', fontFamily: F.FONT }, kids.filter(Boolean));
   }
 
@@ -402,7 +413,7 @@
         N('div', { padding: '20px 56px', borderRadius: '999px', background: '#ff0033', fontFamily: F.FONT, fontSize: '56px', fontWeight: '900', color: '#fff', transform: `scale(${(1 + 0.05 * Math.sin(t / 160)).toFixed(3)})`, opacity: String(clamp01((t - 700) / 300)) }, '🔔 ¿PARTE 2? SUSCRÍBETE'),
       ]));
     }
-    if (seg.kind !== 'chapter') kids.push(karaoke(l, lt, V ? { left: 50, right: 50, bottom: 300, size: 44 } : { left: 80, right: 80, bottom: 46, size: 44 }));
+    if (seg.kind !== 'chapter') kids.push(karaoke(l, lt, V ? { w: W, left: 50, right: 50, bottom: 300, size: 44 } : { w: W, left: 80, right: 80, bottom: 46, size: 44 }));
     return N('div', { position: 'absolute', left: '0px', top: '0px', width: px(W), height: px(H), overflow: 'hidden', background: '#14100c', fontFamily: F.FONT }, kids.filter(Boolean));
   }
 
