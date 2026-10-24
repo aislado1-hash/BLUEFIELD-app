@@ -168,7 +168,7 @@ input[type=color]{width:100%;height:40px;padding:4px;background:var(--input);bor
 <details class="sectionDetails fmt-chat">
 <summary>02 · Conversación</summary>
 <div class="sectionBody">
-<div class="hint">Una línea por mensaje: <b>Nombre: texto</b>. Extras: <b>Titulo inicial: "…"</b> al principio y <b>Titulo inicial 2: "…"</b>, <b>Titulo inicial 3: "…"</b>… en cualquier punto del guion · <b>evento: Juan sacó a Pepe del grupo</b> · reacciones al final de un mensaje: <b>Pepe: Golazo {r: 😂3 🔥 💀}</b> · nota de voz: <b>Pepe: [audio] texto</b> (con transcripción) o <b>[audio-solo]</b> · confesionario a cámara: <b>confesionario: Pepe: texto</b> (el número es cuántas personas reaccionan).</div>
+<div class="hint">Una línea por mensaje: <b>Nombre: texto</b>. Extras: <b>Titulo inicial: "…"</b> al principio y <b>Titulo inicial 2: "…"</b>, <b>Titulo inicial 3: "…"</b>… en cualquier punto del guion · <b>evento: Juan sacó a Pepe del grupo</b> · reacciones al final de un mensaje: <b>Pepe: Golazo {r: 😂3 🔥 💀}</b> · nota de voz: <b>Pepe: [audio] texto</b> (con transcripción) o <b>[audio-solo]</b> · confesionario a cámara: <b>confesionario: Pepe: texto</b> (el número es cuántas personas reaccionan) · responder citando: <b>Pepe: [responde a Ana] texto</b> o <b>[responde a Ana: cargador]</b> (cita su último mensaje con esa palabra) · hora: <b>hora: 23:47</b> (desde ahí la hora sigue avanzando) · cambio de día: <b>fecha: Al día siguiente</b> o <b>fecha: Martes | 08:15</b>.</div>
 <div class="row"><div class="field"><label>Tipografía del título inicial</label><select id="initialTitleFont"><option value="Arial">Arial</option><option value="Georgia">Georgia</option><option value="Verdana">Verdana</option><option value="Trebuchet MS">Trebuchet MS</option><option value="Courier New">Courier New</option><option value="Impact">Impact</option></select></div><div class="field"><label>Tamaño del título</label><input id="initialTitleSize" type="number" min="20" max="180" step="1" value="72"></div></div>
 <div class="row"><div class="field"><label>Color del título</label><input id="initialTitleColor" type="color" value="#ffffff"></div><div class="field"><label>Color del trazo</label><input id="initialTitleStrokeColor" type="color" value="#000000"></div><div class="field"><label>Tamaño de trazo</label><input id="initialTitleStroke" type="number" min="0" max="20" step="0.5" value="0"></div></div>
 <textarea id="script"></textarea>
@@ -245,6 +245,29 @@ input[type=color]{width:100%;height:40px;padding:4px;background:var(--input);bor
 <div id="fmtPhotos"></div>
 </div></details>
 
+<details class="sectionDetails fmt-top fmt-hist" open>
+<summary>🎨 Estilo y transiciones</summary>
+<div class="sectionBody">
+<div class="row"><div class="field"><label>Estilo visual</label><select id="fmtStyle"></select></div><div class="field"><label>Transición entre bloques</label><select id="fmtTransition"></select></div></div>
+<div class="hint">El estilo cambia colores, letras, marcos de las fotos y subtítulos sin tocar el guion. Top e Historia guardan cada uno el suyo.</div>
+</div></details>
+
+<details class="sectionDetails">
+<summary>🏷️ Kit de marca del canal</summary>
+<div class="sectionBody">
+<div class="hint">Se guarda una sola vez y sirve para todos tus proyectos y formatos: logo, nombre, color y letra del canal.</div>
+<label class="check"><input type="checkbox" id="brandUse" checked> Usar el kit de marca en este vídeo</label>
+<div class="row"><div class="field"><label>Nombre del canal</label><input id="brandName" placeholder="Mi canal"></div><div class="field" style="flex:0 0 90px"><label>Color</label><input id="brandColor" type="color" value="#ffd166"></div></div>
+<div class="row"><div class="field"><label>Letra de los títulos (Top, Historia y presentación)</label><select id="brandFont"><option value="">La del estilo</option></select></div></div>
+<div class="row" style="align-items:center"><label class="btn">🖼️ Logo<input class="file" id="brandLogo" type="file" accept="image/*"></label><button class="btn" id="brandLogoRemove">✕ Quitar logo</button><div id="brandLogoThumb" style="width:54px;height:54px;border-radius:10px;background:#1b2130 center/contain no-repeat;flex:0 0 auto"></div></div>
+<div class="hint">Mejor un PNG con fondo transparente.</div>
+<label class="check"><input type="checkbox" id="brandWatermark"> Marca de agua (logo o nombre) durante todo el vídeo</label>
+<div class="row"><div class="field"><label>Posición</label><select id="brandWmPos"><option value="br">Abajo a la derecha</option><option value="bl">Abajo a la izquierda</option><option value="tr">Arriba a la derecha</option><option value="tl">Arriba a la izquierda</option></select></div><div class="field"><label>Tamaño <span id="brandWmSizeLabel">110 px</span></label><input id="brandWmSize" type="range" min="40" max="300" step="5" value="110"></div><div class="field"><label>Opacidad <span id="brandWmOpacityLabel">70%</span></label><input id="brandWmOpacity" type="range" min="10" max="100" step="5" value="70"></div></div>
+<label class="check"><input type="checkbox" id="brandIntro"> Presentación del canal al principio (3 s)</label>
+<label class="check"><input type="checkbox" id="brandOutro"> Cierre con «Suscríbete» al final (5 s)</label>
+<div class="small" id="brandStatus"></div>
+</div></details>
+
 <details class="sectionDetails">
 <summary>🎵 Música de fondo</summary>
 <div class="sectionBody">
@@ -259,6 +282,7 @@ input[type=color]{width:100%;height:40px;padding:4px;background:var(--input);bor
 <div class="hint fmt-chat">AI33 Text to Speech genera <b>un audio independiente por mensaje</b>. El programa espera a que AI33 termine, descarga el archivo, lo verifica y solo entonces solicita el siguiente mensaje.</div>
 <div class="row"><div class="field"><label>API Key AI33</label><input id="ai33Key" type="password" placeholder="xi-api-key" autocomplete="off"></div><div class="field"><label>Endpoint</label><input value="Text to Speech v3" disabled></div></div>
 <label class="check"><input type="checkbox" id="ai33Remember"> Recordar la API key en este navegador (no se guarda en los proyectos)</label>
+<label class="check"><input type="checkbox" id="normVoices" checked> Igualar el volumen de todas las voces: las que suenan flojas suben y las fuertes bajan (también las ya generadas, al volver a pulsar «Generar»)</label>
 <div class="row fmt-chat"><button class="btn" id="ai33Generate">🗣️ Generar voces, una por una</button><button class="btn" id="ai33Clear">✕ Quitar voces AI33</button><button class="btn" id="ai33Folder">📁 Abrir carpeta de audios</button></div>
 <div class="small fmt-chat" id="ai33Status">Sin audios de AI33 generados.</div>
 <div id="ai33ProgressWrap" class="fmt-chat" style="display:none;margin-top:10px">
@@ -298,7 +322,7 @@ input[type=color]{width:100%;height:40px;padding:4px;background:var(--input);bor
 "use strict";
 const $=id=>document.getElementById(id);
 const C=window.ChatCore;
-const state={projectSlug:"",projectName:"",loaded:false,format:"chat",top:{voice:"",speed:1},hist:{name:"",image:null,color:"#f839f2",voice:"",speed:1},fmtImages:{},fmtAudios:[],plan:null,groupName:"Chat de grupo",groupMembers:24,headerSize:108,initialTitle:"",initialTitleAudio:null,initialTitleAudioCacheKey:"",initialTitleDuration:0,titleAudios:[],fx:{...C.FX_ALL},initialTitleFont:"Arial",initialTitleSize:72,initialTitleColor:"#ffffff",initialTitleStrokeColor:"#000000",initialTitleStroke:0,eventSize:28,theme:"clasico",library:[],voices:[],music:null,musicName:"",musicVolume:25,musicDuck:8,musicEl:null,groupEvents:[],chars:{},selected:null,bgColor:"#11131a",bgImage:null,bgFit:"cover",sound:null,dialogueMessages:[],playing:false,raf:0,audioCtx:null,audioBuffer:null,audioSources:[],players:[],lastProject:null};
+const state={projectSlug:"",projectName:"",loaded:false,format:"chat",top:{voice:"",speed:1},hist:{name:"",image:null,color:"#f839f2",voice:"",speed:1},fmtImages:{},fmtAudios:[],plan:null,brand:{name:"",logo:"",color:"#ffd166",font:"",watermark:true,wmPos:"br",wmOpacity:70,wmSize:110,intro:false,outro:false},useBrand:true,normalizeVoices:true,groupName:"Chat de grupo",groupMembers:24,headerSize:108,initialTitle:"",initialTitleAudio:null,initialTitleAudioCacheKey:"",initialTitleDuration:0,titleAudios:[],fx:{...C.FX_ALL},initialTitleFont:"Arial",initialTitleSize:72,initialTitleColor:"#ffffff",initialTitleStrokeColor:"#000000",initialTitleStroke:0,eventSize:28,theme:"clasico",library:[],voices:[],music:null,musicName:"",musicVolume:25,musicDuck:8,musicEl:null,groupEvents:[],chars:{},selected:null,bgColor:"#11131a",bgImage:null,bgFit:"cover",sound:null,dialogueMessages:[],playing:false,raf:0,audioCtx:null,audioBuffer:null,audioSources:[],players:[],lastProject:null};
 const demo={a:{name:"Real Madrid",side:"right",color:"#39c96b",textColor:"#fff",strokeColor:"#000",stroke:2,size:150,photoX:0,photoY:0,bubbleX:0,bubbleSize:150,nameSize:45,image:""},
 b:{name:"Barcelona",side:"left",color:"#ff5d83",textColor:"#fff",strokeColor:"#000",stroke:2,size:150,photoX:0,photoY:0,bubbleX:0,bubbleSize:150,nameSize:45,image:""}};
 function escapeHtml(v){return String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]))}
@@ -418,7 +442,7 @@ $("voiceSave").onclick=async()=>{const c=selChar();if(!c)return;const voice_id=$
 $("voiceDelete").onclick=async()=>{const name=$("voiceSelect").value;if(!name||!confirm(`¿Borrar la voz «${name}» de la lista? (los personajes que ya la usan la conservan)`))return;try{await postJSON("/voices/delete",{name});await loadVoices();$("voiceStatus").textContent=`Voz «${name}» borrada de la lista.`}catch(e){$("voiceStatus").textContent="Error: "+e.message}};
 
 /* ───────── Personajes desde el guion ───────── */
-const NOT_A_CHARACTER=/^(t[ií]tulo inicial|t[ií]tulo|evento|confesionario|nota|notas|https?|www)$/i;
+const NOT_A_CHARACTER=/^(t[ií]tulo inicial|t[ií]tulo|evento|confesionario|hora|fecha|d[ií]a|nota|notas|https?|www)$/i;
 const isCreatableName=name=>!NOT_A_CHARACTER.test(name)&&!/[\/\\{}\[\]<>]/.test(name);
 /** Crea los personajes que aparecen en el guion y no existen. Si están en la biblioteca o en un proyecto
  *  anterior con voz, se copian tal cual (la biblioteca manda si también tiene voz); si no, y hay una voz
@@ -489,11 +513,20 @@ $("clearGroupEvents").onclick=()=>{state.groupEvents=state.groupEvents.filter(e=
 
 /* ───────── Proyecto y línea de tiempo ───────── */
 let events=[],cues=[],totalMs=0,currentTime=0;
-function project(){const res=$("resolution")?.value||"1920x1080";const [videoWidth,videoHeight]=res.split("x").map(Number);return{projectSlug:state.projectSlug||"",projectName:state.projectName||"",videoWidth,videoHeight,groupName:state.groupName,groupMembers:state.groupMembers,headerSize:state.headerSize,initialTitle:state.initialTitle,initialTitleAudio:state.initialTitleAudio,initialTitleAudioCacheKey:state.initialTitleAudioCacheKey||"",initialTitleDuration:state.initialTitleDuration,titleAudios:state.titleAudios,fx:{...state.fx},initialTitleFont:state.initialTitleFont,initialTitleSize:state.initialTitleSize,initialTitleColor:state.initialTitleColor,initialTitleStrokeColor:state.initialTitleStrokeColor,initialTitleStroke:state.initialTitleStroke,eventSize:state.eventSize,groupEvents:state.groupEvents,chars:Object.values(state.chars),script:$("script").value,delay:+$("delay").value||0,typing:+$("typing").value||0,duration:+$("duration").value||2.2,anim:$("anim").value,sideMode:$("sideMode").value,bg:state.bgColor,bgColor:state.bgColor,bgImage:state.bgImage,bgFit:state.bgFit,fps:+$("fps").value||30,sound:state.sound,music:state.music,musicName:state.musicName||"",musicVolume:state.musicVolume,musicDuck:state.musicDuck,dialogueMessages:state.dialogueMessages,popupDelay:0.35,theme:state.theme||"clasico",renderSpeed:$("renderSpeed").value,autoFit:$("autoFit").checked,format:state.format,topScript:$("topScript").value,histScript:$("histScript").value,top:{...state.top},hist:{...state.hist},fmtImages:{...state.fmtImages},fmtAudios:state.fmtAudios}}
+function project(){const res=$("resolution")?.value||"1920x1080";const [videoWidth,videoHeight]=res.split("x").map(Number);return{projectSlug:state.projectSlug||"",projectName:state.projectName||"",videoWidth,videoHeight,groupName:state.groupName,groupMembers:state.groupMembers,headerSize:state.headerSize,initialTitle:state.initialTitle,initialTitleAudio:state.initialTitleAudio,initialTitleAudioCacheKey:state.initialTitleAudioCacheKey||"",initialTitleDuration:state.initialTitleDuration,titleAudios:state.titleAudios,fx:{...state.fx},initialTitleFont:state.initialTitleFont,initialTitleSize:state.initialTitleSize,initialTitleColor:state.initialTitleColor,initialTitleStrokeColor:state.initialTitleStrokeColor,initialTitleStroke:state.initialTitleStroke,eventSize:state.eventSize,groupEvents:state.groupEvents,chars:Object.values(state.chars),script:$("script").value,delay:+$("delay").value||0,typing:+$("typing").value||0,duration:+$("duration").value||2.2,anim:$("anim").value,sideMode:$("sideMode").value,bg:state.bgColor,bgColor:state.bgColor,bgImage:state.bgImage,bgFit:state.bgFit,fps:+$("fps").value||30,sound:state.sound,music:state.music,musicName:state.musicName||"",musicVolume:state.musicVolume,musicDuck:state.musicDuck,dialogueMessages:state.dialogueMessages,popupDelay:0.35,theme:state.theme||"clasico",renderSpeed:$("renderSpeed").value,autoFit:$("autoFit").checked,format:state.format,topScript:$("topScript").value,histScript:$("histScript").value,top:{...state.top},hist:{...state.hist},fmtImages:{...state.fmtImages},fmtAudios:state.fmtAudios,brand:{...state.brand,on:!!state.useBrand},normalizeVoices:state.normalizeVoices!==false}}
+/** Presentación y cierre del canal: la vista previa dura más y todo lo demás empieza después de la presentación. */
+let brandT={intro:0,outro:0},innerMs=0;
+function finishBrandTiming(){
+  innerMs=totalMs;const off=brandT.intro*1000;
+  if(off){cues.forEach(q=>q.t+=off);cues.unshift({t:0,audio:"/sfx/whoosh.wav"})}
+  totalMs=innerMs+off+brandT.outro*1000;
+  $("seek").max=Math.max(1,Math.round(totalMs));$("seekTotal").textContent=(totalMs/1000).toFixed(1)+" s";
+  $("timelineMeta").textContent=`${(totalMs/1000).toFixed(2)} s`+(off||brandT.outro?` · incluye ${[off?"presentación":"",brandT.outro?"cierre":""].filter(Boolean).join(" y ")} del canal`:"");
+}
 function buildTimeline(){
-  if(state.format!=="chat"){state.lastProject=project();buildFormatTimeline();return}
-  syncScriptState();
-  state.lastProject=project();
+  if(state.format==="chat")syncScriptState();
+  state.lastProject=project();brandT=FM.brandTiming(state.lastProject);
+  if(state.format!=="chat"){buildFormatTimeline();finishBrandTiming();return}
   const r=C.buildEvents(state.lastProject);
   events=r.events;totalMs=events.length?r.totalMs:0;
   musicSegs=C.voiceSegments(state.lastProject,events);
@@ -505,8 +538,8 @@ function buildTimeline(){
     if(e.kind==="message"){cues.push({t:e.visibleStart,pop:true,short:!!e.audio});if(e.audio)cues.push({t:e.visibleStart+popup,audio:e.audio})}
   }
   const tl=$("timeline");$("timelineMeta").textContent=`${(totalMs/1000).toFixed(2)} s`;tl.innerHTML="";
-  events.forEach((e,i)=>{const row=document.createElement("div");row.className="trow "+(e.kind==="system"?"systemRow":e.kind==="intro"?"introRow":"");row.id="tr"+i;const dur=e.audioDuration?e.audioDuration.toFixed(2)+"s":e.audioMissing?'<span class="noVoice">⚠ sin voz</span>':"";const label=e.confession?"🎥 "+escapeHtml(e.char.name):e.kind==="system"?"⚙ Evento":e.kind==="intro"?"🎬 "+escapeHtml(e.label||"Título inicial"):escapeHtml(e.char.name);row.innerHTML=`<span class="tbadge">${(e.start/1000).toFixed(1)}s</span><b>${label}</b><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e.voiceNote?"🎤 ":""}${escapeHtml(e.text)}</span><span>${dur}</span>`;tl.append(row)});
-  tl.querySelectorAll(".trow").forEach((row,i)=>row.onclick=()=>{const e=events[i];seek(e.kind==="message"?Math.min(e.end-1,e.visibleStart+400):e.visibleStart+200)});
+  events.forEach((e,i)=>{const row=document.createElement("div");row.className="trow "+(e.kind==="system"?"systemRow":e.kind==="intro"?"introRow":"");row.id="tr"+i;const dur=e.audioDuration?e.audioDuration.toFixed(2)+"s":e.audioMissing?'<span class="noVoice">⚠ sin voz</span>':"";const label=e.confession?"🎥 "+escapeHtml(e.char.name):e.kind==="system"?(e.event&&e.event.type==="day"?"📅 Fecha":"⚙ Evento"):e.kind==="intro"?"🎬 "+escapeHtml(e.label||"Título inicial"):escapeHtml(e.char.name);row.innerHTML=`<span class="tbadge">${(e.start/1000).toFixed(1)}s</span><b>${label}</b><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e.voiceNote?"🎤 ":""}${escapeHtml(e.text)}</span><span>${dur}</span>`;tl.append(row)});
+  tl.querySelectorAll(".trow").forEach((row,i)=>row.onclick=()=>{const e=events[i];seek(brandT.intro*1000+(e.kind==="message"?Math.min(e.end-1,e.visibleStart+400):e.visibleStart+200))});
   const sk=$("seek");sk.max=Math.max(1,Math.round(totalMs));$("seekTotal").textContent=(totalMs/1000).toFixed(1)+" s";
   const unknown=r.parsed.unknownNames,warns=[];
   if(unknown.length)warns.push(`⚠ Líneas ignoradas: no hay personaje llamado ${unknown.map(n=>"«"+escapeHtml(n)+"»").join(", ")}.${unknown.some(isCreatableName)?' <button class="btn" id="createFromScript" style="padding:4px 9px;margin-left:4px;font-size:11px">＋ Crear personajes</button>':""}`);
@@ -514,7 +547,8 @@ function buildTimeline(){
   $("scriptWarn").innerHTML=warns.map(w=>`<div class="warn">${w}</div>`).join("");
   if($("createFromScript"))$("createFromScript").onclick=()=>createCharactersFromScript(false);
   if(events.some(e=>(e.voiceNote||e.confession)&&e.audio&&!Array.isArray(e.peaks)))schedulePeaks();
-    lastSig="";scheduleSave();
+  finishBrandTiming();
+  lastSig="";scheduleSave();
 }
 
 /* ───────── Vista previa: mismo núcleo y mismos estilos que Remotion ───────── */
@@ -522,23 +556,33 @@ function css(el,st){for(const k in st)el.style.setProperty(k.replace(/[A-Z]/g,m=
 function h(tag,st,text){const e=document.createElement(tag);if(st)css(e,st);if(text!=null)e.textContent=text;return e}
 let lastSig="",lastAnimating=false,lastHighlight=-2;
 function highlightTimeline(ms){let idx=-1;events.forEach((e,i)=>{if(ms>=e.start&&ms<e.end)idx=i});if(idx===lastHighlight)return;const prev=$("tr"+lastHighlight);if(prev)prev.classList.remove("on");const cur=$("tr"+idx);if(cur){cur.classList.add("on");if(state.playing)cur.scrollIntoView({block:"nearest"})}lastHighlight=idx}
+/** Marca de agua del canal encima de la escena. */
+function addWatermark(canvas,p){const wm=FM.watermark(p);if(wm)canvas.append(toDom(wm))}
 function renderAt(ms,force=true,save=force){
   currentTime=ms;
   if(force||!state.lastProject)state.lastProject=project();
   const p=state.lastProject;
+  // Presentación y cierre del canal (kit de marca).
+  const off=brandT.intro*1000;
+  if((off||brandT.outro)&&FM.brand(p)&&(ms<off||ms>=off+innerMs)){
+    updateSeekUI(ms);const canvas=$("previewCanvas");css(canvas,{background:"#000000",backgroundImage:"none"});
+    const intro=ms<off;canvas.replaceChildren(toDom(FM.brandCard(p,intro?"intro":"outro",intro?ms:ms-off-innerMs)));
+    lastSig="";highlightTimeline(-1);if(save)scheduleSave();return;
+  }
+  ms-=off;
   if(state.format!=="chat"){
-    updateSeekUI(ms);if(!state.plan)buildTimeline();
-    const canvas=$("previewCanvas");css(canvas,{background:"#000000",backgroundImage:"none"});canvas.replaceChildren(toDom(FM.scene(p,state.plan,ms)));
+    updateSeekUI(currentTime);if(!state.plan)buildTimeline();
+    const canvas=$("previewCanvas");css(canvas,{background:"#000000",backgroundImage:"none"});canvas.replaceChildren(toDom(FM.scene(p,state.plan,ms)));addWatermark(canvas,p);
     highlightTimeline(ms);if(save)scheduleSave();return;
   }
   const f=C.frameAt(p,events,ms);
-  updateSeekUI(ms);
+  updateSeekUI(currentTime);
   if(!force&&f.sig===lastSig&&!f.animating&&!lastAnimating){highlightTimeline(ms);return}
   lastSig=f.sig;lastAnimating=f.animating;
   const canvas=$("previewCanvas");
   css(canvas,C.styles.background({...p,__bgUrl:p.bgImage||null}));
   canvas.replaceChildren();
-  if(f.confession){drawConfession(canvas,p,f.confession,ms);highlightTimeline(ms);if(save)scheduleSave();return}
+  if(f.confession){drawConfession(canvas,p,f.confession,ms);addWatermark(canvas,p);highlightTimeline(ms);if(save)scheduleSave();return}
   if(f.intro){const w=h("div",C.styles.introWrap(p));w.append(h("div",C.styles.introText(p),f.intro.text));canvas.append(w)}
   else{
     if(C.fx(p).bg&&!p.bgImage)canvas.append(h("div",C.styles.fxBackground(f)));
@@ -549,11 +593,12 @@ function renderAt(ms,force=true,save=force){
     else hd.append(h("div"),h("div",C.styles.headerName(p),f.header.name),h("div",C.styles.headerMembers(p),C.membersLabel(f.header.count)));
     const outer=h("div",C.styles.chatOuter(p)),inner=h("div",C.styles.chatInner(p)),stack=h("div",C.styles.chatStack());
     for(const e of f.shown){
-      if(e.kind==="system"){const w=h("div",C.styles.systemWrap());w.append(h("div",C.styles.systemText(p),C.systemText(e.text,p)));stack.append(w);continue}
+      if(e.kind==="system"){const w=h("div",C.styles.systemWrap());w.append(e.event&&e.event.type==="day"?h("div",C.styles.dayChip(p),e.text):h("div",C.styles.systemText(p),C.systemText(e.text,p)));stack.append(w);continue}
       const c=e.char,st=C.rowState(p,f,e,ms),row=h("div",C.styles.row(p,C.messageMotion(e,e===f.lastMessage,ms,p.anim,C.fx(p).smooth),st));
       const vis=h("div",C.styles.visual(c,st));if(!st.compact){const im=h("img",C.styles.img(c,st));im.className="mini";im.dataset.char=c.name;im.draggable=false;im.src=c.image||C.BLANK_IMG;vis.append(im,h("div",C.styles.name(p,c),c.name))}
       const bub=h("div",C.styles.bubble(p,c,st));
       if(st.tail)bub.append(h("div",C.styles.tail(p,c)));
+      if(e.reply){const q=h("div",C.styles.quote(p,c,e.reply));q.append(h("div",C.styles.quoteName(p,c,e.reply),e.reply.name),h("div",C.styles.quoteText(p,c),C.quoteText(e.reply)));bub.append(q)}
       const rich=box=>C.richText(e.text).forEach(seg=>box.append(seg.hi?h("span",C.styles.highlight(),seg.t):document.createTextNode(seg.t)));
       if(e.voiceNote){const vn=C.voiceNote(p,e,ms),w=h("div",C.styles.vnWrap(c)),bt=h("div",C.styles.vnButton(c));
         if(vn.playing)bt.append(h("div",C.styles.vnPauseBar(c)),h("div",C.styles.vnPauseBar(c)));else bt.append(h("div",C.styles.vnPlay(c)));
@@ -570,6 +615,7 @@ function renderAt(ms,force=true,save=force){
     if(f.typing){const tr=h("div",C.styles.typingRow(p));tr.append(h("div",C.styles.typing(p,f.typing.char,f.typing),C.typingLabel(f.typing)));stack.append(tr)}
     inner.append(stack);outer.append(inner);canvas.append(hd,outer);
   }
+  addWatermark(canvas,p);
   highlightTimeline(ms);
   if(save)scheduleSave();
 }
@@ -624,7 +670,7 @@ let musicSegs=[];
 function musicElement(){if(!state.music)return null;if(!state.musicEl||state.musicEl.dataset.src!==state.music){if(state.musicEl)state.musicEl.pause();const el=new Audio(state.music);el.loop=true;el.preload="auto";el.dataset.src=state.music;state.musicEl=el}return state.musicEl}
 function stopMusic(){if(state.musicEl){try{state.musicEl.pause()}catch(_){}}}
 /** En cada fotograma de la vista previa: la música suena en su posición y con el volumen del ducking. */
-function musicTick(ms){const el=musicElement();if(!el)return;el.volume=C.musicVolume(state.lastProject||project(),musicSegs,ms,totalMs);if(el.paused){const d=el.duration;try{el.currentTime=d>0?(ms/1000)%d:ms/1000}catch(_){}el.play().catch(()=>{})}}
+function musicTick(ms){const el=musicElement();if(!el)return;ms-=brandT.intro*1000;if(ms<0||ms>=innerMs){if(!el.paused)el.pause();return}el.volume=C.musicVolume(state.lastProject||project(),musicSegs,ms,innerMs);if(el.paused){const d=el.duration;try{el.currentTime=d>0?(ms/1000)%d:ms/1000}catch(_){}el.play().catch(()=>{})}}
 function stopPreviewSounds(){stopMusic();state.audioSources.forEach(s=>{try{s.stop()}catch(_){}});state.audioSources=[];state.players.forEach(a=>{try{a.pause()}catch(_){}});state.players=[]}
 function fireCues(from,to){for(const q of cues){if(q.t>from&&q.t<=to){if(q.pop){if(state.sound)playPop(q.short)}else playUrl(q.audio)}}}
 $("play").onclick=async()=>{
@@ -660,7 +706,7 @@ async function generateMessageAudio(){
   if(messages.some(x=>!x.voice_id)){$("ai33Status").textContent="Falta AI33 Voice ID en uno o más personajes.";return false}
   $("ai33Generate").disabled=true;$("ai33ProgressWrap").style.display="block";$("ai33ProgressBar").style.width="0%";$("ai33ProgressPct").textContent="0%";$("ai33ProgressText").textContent="Preparando audios…";
   try{
-    const j=await postJSON("/ai33/messages",{projectSlug:state.projectSlug,api_key:key,messages});
+    const j=await postJSON("/ai33/messages",{projectSlug:state.projectSlug,api_key:key,messages,normalize:state.normalizeVoices!==false});
     const p=await pollJob("/ai33/progress/"+j.job,p=>{const pct=Math.max(0,Math.min(100,Number(p.percent)||0));$("ai33ProgressBar").style.width=pct+"%";$("ai33ProgressPct").textContent=pct+"%";$("ai33ProgressText").textContent=p.message||"Procesando…"});
     state.dialogueMessages=(p.results||[]).filter(x=>x&&x.audio).map(x=>{const old=state.dialogueMessages.find(o=>o&&o.audio===x.audio&&Array.isArray(o.peaks));return old?{...x,peaks:old.peaks}:x});buildTimeline();await ensureVoicePeaks();renderAt(currentTime);await saveNow();
     $("ai33Status").textContent=`✓ ${state.dialogueMessages.length} audios disponibles; solo se generaron los que faltaban.`;
@@ -682,7 +728,7 @@ async function generateEventTitleAudio(){
   if(items.some(x=>!x.voice_id)){$("eventAudioStatus").textContent="Falta una voz AI33 para algún evento. Configura una voz en un personaje o selecciona una voz en el evento.";return false}
   $("generateEventAudio").disabled=true;$("eventAudioStatus").textContent="Generando audios de eventos, uno por uno…";
   try{
-    const j=await postJSON("/ai33/messages",{projectSlug:state.projectSlug,api_key:key,messages:items});
+    const j=await postJSON("/ai33/messages",{projectSlug:state.projectSlug,api_key:key,messages:items,normalize:state.normalizeVoices!==false});
     const p=await pollJob("/ai33/progress/"+j.job,p=>{$("eventAudioStatus").textContent=p.message||"Procesando eventos…"});
     const titleAudios=[];
     for(const res of (p.results||[])){const idx=Number(res.eventIndex);if(idx<0){if(res.audio)titleAudios.push({cacheKey:res.cacheKey||"",audio:res.audio,duration:Number(res.duration)||0});if(idx===-1){state.initialTitleAudio=res.audio;state.initialTitleDuration=Number(res.duration)||0;state.initialTitleAudioCacheKey=res.cacheKey||""}}else if(state.groupEvents[idx]){Object.assign(state.groupEvents[idx],{audio:res.audio,audioDuration:Number(res.duration)||0,audioCacheKey:res.cacheKey||""})}}
@@ -744,7 +790,16 @@ function syncNarrator(){
   const hit=(state.voices||[]).find(v=>v.voice_id===n.voice);sel.value=hit?hit.name:"";
   const lib=$("narrLib");lib.innerHTML='<option value="">Elegir de la biblioteca o de proyectos anteriores…</option>';
   const seen=new Set();[...(state.library||[]),...(state.pastChars||[]).map(x=>x.character),...Object.values(state.chars||{})].forEach(c=>{const k=String(c&&c.name||"").toLowerCase();if(!k||seen.has(k))return;seen.add(k);const o=document.createElement("option");o.value=c.name;o.textContent=c.name+(c.ai33Voice?" · 🗣":"")+(c.image?" · 🖼":"");lib.append(o)});
+  syncFmtStyle();
 }
+/** Estilo visual y transición del formato activo. */
+function syncFmtStyle(){
+  const n=fmtCur(),styles=state.format==="hist"?FM.HIST_STYLES:FM.TOP_STYLES,fill=(sel,map)=>{sel.innerHTML="";Object.entries(map).forEach(([id,v])=>{const o=document.createElement("option");o.value=id;o.textContent=typeof v==="string"?v:v.label;sel.append(o)})};
+  fill($("fmtStyle"),styles);fill($("fmtTransition"),FM.TRANSITIONS);
+  $("fmtStyle").value=styles[n.style]?n.style:Object.keys(styles)[0];$("fmtTransition").value=FM.TRANSITIONS[n.transition]?n.transition:"auto";
+}
+$("fmtStyle").onchange=()=>{fmtCur().style=$("fmtStyle").value;narrChanged()};
+$("fmtTransition").onchange=()=>{fmtCur().transition=$("fmtTransition").value;narrChanged()};
 const narrChanged=()=>{buildTimeline();renderAt(currentTime)};
 $("narrVoice").oninput=()=>{fmtCur().voice=$("narrVoice").value.trim();narrChanged()};
 $("narrSpeed").oninput=()=>{fmtCur().speed=Math.max(.25,+$("narrSpeed").value||1);narrChanged()};
@@ -795,7 +850,7 @@ function buildFormatTimeline(){
     const what=sg.kind==="item"?`#${sg.item.rank} ${sg.item.name}`:sg.kind==="photo"?sg.label:sg.kind==="chapter"?sg.title:sg.kind==="intro"?sg.title:(sg.lines[0]||{}).text||"";
     const miss=sg.lines.some(l=>l.missing);
     row.innerHTML=`<span class="tbadge">${sg.start.toFixed(1)}s</span><b>${NAMES[sg.kind]||sg.kind}</b><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(what)}</span><span>${miss?'<span class="noVoice">⚠ sin voz</span>':sg.dur.toFixed(1)+"s"}</span>`;
-    row.onclick=()=>seek(sg.start*1000+400);tl.append(row);
+    row.onclick=()=>seek(brandT.intro*1000+sg.start*1000+400);tl.append(row);
   });
   const sk=$("seek");sk.max=Math.max(1,totalMs);$("seekTotal").textContent=(totalMs/1000).toFixed(1)+" s";
   const warns=[],n=fmtCur();
@@ -822,7 +877,7 @@ async function generateFormatAudio(){
   plan.lines.forEach(l=>{if(seen.has(l.cacheKey))return;seen.add(l.cacheKey);const old=state.fmtAudios.find(a=>a&&a.cacheKey===l.cacheKey&&a.audio);items.push({kind:l.kind,text:l.text,voice_id:l.voice,speed:l.speed,cacheKey:l.cacheKey,existingAudio:old?old.audio:null})});
   $("fmtGenerate").disabled=true;$("fmtProgressWrap").style.display="block";$("fmtProgressBar").style.width="0%";$("fmtProgressPct").textContent="0%";$("fmtProgressText").textContent="Preparando voces…";
   try{
-    const j=await postJSON("/ai33/messages",{projectSlug:state.projectSlug,api_key:key,messages:items});
+    const j=await postJSON("/ai33/messages",{projectSlug:state.projectSlug,api_key:key,messages:items,normalize:state.normalizeVoices!==false});
     const res=await pollJob("/ai33/progress/"+j.job,p=>{const pct=Math.max(0,Math.min(100,Number(p.percent)||0));$("fmtProgressBar").style.width=pct+"%";$("fmtProgressPct").textContent=pct+"%";$("fmtProgressText").textContent=p.message||"Procesando…"});
     for(const r of (res.results||[])){if(!r||!r.audio)continue;const old=state.fmtAudios.find(a=>a&&a.cacheKey===r.cacheKey);const entry={cacheKey:r.cacheKey,audio:r.audio,duration:Number(r.duration)||0,...(old&&old.audio===r.audio&&Array.isArray(old.peaks)?{peaks:old.peaks}:{})};state.fmtAudios=state.fmtAudios.filter(a=>a&&a.cacheKey!==r.cacheKey);state.fmtAudios.push(entry)}
     buildTimeline();await ensureFormatPeaks();renderAt(currentTime);await saveNow();
@@ -838,6 +893,35 @@ async function ensureFormatPeaks(){
   for(const a of state.fmtAudios){if(!a||!a.audio||Array.isArray(a.peaks))continue;try{a.peaks=await computePeaks(a.audio)}catch(err){console.warn(err);a.peaks=[]}changed=true}
   if(changed){buildTimeline();renderAt(currentTime)}
 }
+
+/* ───────── Kit de marca del canal (común a todos los proyectos) ───────── */
+Object.keys(FM.BRAND_FONTS).forEach(f=>{const o=document.createElement("option");o.value=f;o.textContent=f;$("brandFont").append(o)});
+function syncBrand(){
+  const b=state.brand;$("brandUse").checked=!!state.useBrand;$("brandName").value=b.name||"";$("brandColor").value=hex6(b.color||"#ffd166");$("brandFont").value=FM.BRAND_FONTS[b.font]?b.font:"";
+  $("brandLogoThumb").style.backgroundImage=b.logo?`url("${b.logo}")`:"none";$("brandLogoRemove").disabled=!b.logo;
+  $("brandWatermark").checked=!!b.watermark;$("brandWmPos").value=b.wmPos||"br";$("brandWmSize").value=b.wmSize||110;$("brandWmSizeLabel").textContent=(b.wmSize||110)+" px";$("brandWmOpacity").value=b.wmOpacity||70;$("brandWmOpacityLabel").textContent=(b.wmOpacity||70)+"%";
+  $("brandIntro").checked=!!b.intro;$("brandOutro").checked=!!b.outro;
+  $("brandStatus").textContent=b.logo||b.name?"":"Sube un logo o escribe el nombre del canal para activar la marca de agua, la presentación y el cierre.";
+}
+/** Carga la letra de la marca en la vista previa. */
+function ensureBrandFont(){const url=FM.brandFontUrl({brand:{...state.brand,on:true}});let link=$("brandFontLink");if(!url){if(link)link.remove();return}if(link&&link.href===url)return;if(!link){link=document.createElement("link");link.id="brandFontLink";link.rel="stylesheet";document.head.append(link)}link.onload=()=>{document.fonts.ready.then(()=>renderAt(currentTime,true,false))};link.href=url}
+async function loadBrand(){try{const j=await (await fetch("/brand")).json();if(j.brand)state.brand={...state.brand,...j.brand}}catch(_){}syncBrand();ensureBrandFont()}
+let brandTimer=0;
+async function saveBrand(){clearTimeout(brandTimer);try{const j=await postJSON("/brand/save",{brand:state.brand});state.brand={...state.brand,...j.brand};$("brandStatus").textContent="✓ Kit de marca guardado para todos los proyectos."}catch(e){$("brandStatus").textContent="⚠ No se pudo guardar el kit: "+e.message}syncBrand();buildTimeline();renderAt(currentTime)}
+function brandChanged(now){syncBrand();ensureBrandFont();buildTimeline();renderAt(currentTime);clearTimeout(brandTimer);brandTimer=setTimeout(saveBrand,now?0:700)}
+$("brandUse").onchange=()=>{state.useBrand=$("brandUse").checked;buildTimeline();renderAt(currentTime)};
+$("brandName").oninput=()=>{state.brand.name=$("brandName").value;brandChanged()};
+$("brandColor").oninput=()=>{state.brand.color=$("brandColor").value;brandChanged()};
+$("brandFont").onchange=()=>{state.brand.font=$("brandFont").value;brandChanged(true)};
+$("brandWatermark").onchange=()=>{state.brand.watermark=$("brandWatermark").checked;brandChanged(true)};
+$("brandWmPos").onchange=()=>{state.brand.wmPos=$("brandWmPos").value;brandChanged(true)};
+$("brandWmSize").oninput=()=>{state.brand.wmSize=+$("brandWmSize").value;brandChanged()};
+$("brandWmOpacity").oninput=()=>{state.brand.wmOpacity=+$("brandWmOpacity").value;brandChanged()};
+$("brandIntro").onchange=()=>{state.brand.intro=$("brandIntro").checked;brandChanged(true)};
+$("brandOutro").onchange=()=>{state.brand.outro=$("brandOutro").checked;brandChanged(true)};
+$("brandLogo").onchange=async e=>{const f=e.target.files[0];e.target.value="";if(!f)return;try{state.brand.logo=await readFileAsDataURL(f);$("brandStatus").textContent="Guardando el logo…";await saveBrand()}catch(err){$("brandStatus").textContent="Error con el logo: "+err.message}};
+$("brandLogoRemove").onclick=()=>{state.brand.logo="";brandChanged(true)};
+$("normVoices").onchange=()=>{state.normalizeVoices=$("normVoices").checked;scheduleSave()};
 
 /* ───────── Efectos visuales ───────── */
 function syncFx(){document.querySelectorAll("[data-fx]").forEach(b=>b.checked=!!state.fx[b.dataset.fx]);$("fxClock").value=state.fx.clock||"21:14"}
@@ -953,6 +1037,7 @@ function applyProjectData(rp){
   $("topScript").value=typeof rp.topScript==="string"?rp.topScript:"";$("histScript").value=typeof rp.histScript==="string"?rp.histScript:"";
   state.top={voice:"",speed:1,...(rp.top||{})};state.hist={name:"",image:null,color:"#f839f2",voice:"",speed:1,...(rp.hist||{})};
   state.fmtImages={...(rp.fmtImages||{})};state.fmtAudios=Array.isArray(rp.fmtAudios)?rp.fmtAudios:[];
+  state.useBrand=!(rp.brand&&rp.brand.on===false);state.normalizeVoices=rp.normalizeVoices!==false;$("normVoices").checked=state.normalizeVoices;syncBrand();
   state.format=FM.FORMATS[rp.format]?rp.format:"chat";$("editorApp").dataset.format=state.format;document.querySelectorAll("#fmtTabs .fmtTab").forEach(b=>b.classList.toggle("on",b.dataset.format===state.format));syncNarrator();
   syncChatHeader();syncBackground();syncTitleInputs();syncSoundStatus();syncMusic();syncResolutionBadge();syncThemeSelect();syncEventFields();sync();drawChars();buildTimeline();fitPreviewCanvas();renderGroupEvents();renderAt(0);
 }
@@ -979,5 +1064,5 @@ async function initProjectManager(){
   }else await loadProjects();
 }
 syncChatHeader();syncBackground();syncTitleInputs();syncThemeSelect();syncEventFields();
-Promise.all([loadLibrary(),loadVoices()]).finally(initProjectManager);
+Promise.all([loadLibrary(),loadVoices(),loadBrand()]).finally(initProjectManager);
 </script></body></html>

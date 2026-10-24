@@ -46,6 +46,8 @@ evento: María cambió el título del grupo a Viaje a Madrid
 - **Confesionario:** `confesionario: Algodón: Vale. Fui yo.` corta el chat y muestra a ese personaje solo, a pantalla completa, hablando a cámara (● REC, zoom lento, su foto late con la voz y subtítulo palabra a palabra). Luego se vuelve al chat; ese mensaje no aparece en él.
 - **Prompt para la IA de guiones:** en `PROMPT_GUIONES.md` está el texto para que la IA escriba guiones con todo este formato sin retoques.
 - **Notas de voz:** `Pepe: [audio] texto` muestra una nota de voz (▶, onda y duración) con la transcripción debajo; `[audio-solo]` la muestra sin texto. La voz se genera igual que un mensaje normal (añadir o quitar la marca no regenera el audio). Mientras suena, el botón pasa a ⏸ y la onda —la forma real del audio— se va rellenando; antes aparece «🎤 grabando audio…».
+- **Respuestas citadas:** `Pepe: [responde a Ana] texto` muestra arriba de la burbuja el último mensaje de Ana; `[responde a Ana: cargador]` cita el último suyo que contiene «cargador». Se puede combinar con `[audio]`.
+- **Hora y cambio de día:** `hora: 23:47` hace que la hora de los mensajes siga desde las 23:47; `fecha: Al día siguiente | 08:15` pone un separador de fecha en el chat (sin voz) y cambia la hora. Con cualquiera de las dos, la hora se ve en las burbujas aunque «Detalles» esté apagado.
 
 ## Funciones principales
 
@@ -85,6 +87,14 @@ Para cambiar un tamaño, color o margen del vídeo, edítalo en `shared/chatcore
 - **API key de AI33:** nunca se guarda en los proyectos. Opcionalmente se puede recordar en el navegador.
 - **Proyectos de versiones anteriores:** copia la carpeta `public/projects` de tu versión antigua a esta. Al abrirlos, las fotos y el sonido incrustados se convierten solos en archivos.
 - **Variables opcionales:** `CHAT_VIDEO_PORT` (puerto fijo), `CHAT_VIDEO_BROWSER` (Chrome propio para Remotion), `CHAT_VIDEO_NO_BROWSER=1` (no abrir el navegador).
+
+## Cambios en v39
+
+- **Igualar volumen de las voces** (*04 · Voces AI33*, activado por defecto): cada audio se ajusta al descargarlo para que todas las voces suenen al mismo nivel, sin saturar. Los audios ya generados se igualan al volver a pulsar «Generar» (no gasta créditos: se reutilizan). Usa ffmpeg.
+- **Top / Historia · estilos visuales:** Top tiene *Clásico*, *Documental*, *Neón* y *Minimal*; Historia tiene *Álbum*, *Documental*, *Cine* (franjas negras y foto a pantalla completa) y *Minimal*.
+- **Top / Historia · transiciones entre bloques:** fundido a negro, barrido de color, deslizar, zoom o destello (o la original del estilo).
+- **Kit de marca del canal** (común a todos los proyectos): logo, nombre, color y letra. Marca de agua opcional, presentación del canal (3 s) y cierre con «Suscríbete» (5 s), en los tres formatos. Se guarda en `public/library/brand.json`; cada proyecto puede no usarlo.
+- **Chat:** respuestas citadas, `hora:` y separadores de fecha `fecha:`.
 
 ## Cambios en v36
 

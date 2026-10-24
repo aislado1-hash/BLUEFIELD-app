@@ -46,10 +46,18 @@ Una instrucción por línea. Estas son todas las que existen:
    `Humana: ¿Dónde está mi *cargador*?`
    Una o dos palabras clave por mensaje como mucho, y no en todos los mensajes.
 
+9. **Responder citando** un mensaje anterior: `[responde a Nombre]` justo después de los dos puntos. La burbuja muestra arriba el último mensaje de esa persona, como en WhatsApp. Para citar uno concreto, añade una palabra que aparezca en él: `[responde a Nombre: palabra]`. La cita no se lee en voz alta:
+   `Humana: [responde a Algodón: decoración] ¿Decoración? Era mi cargador.`
+   Úsalo para pillar a alguien en una mentira o para contestar algo que se dijo hace rato.
+
+10. **Hora del chat**: `hora: 23:47` en su propia línea. Desde ahí la hora de los mensajes sigue a partir de las 23:47.
+
+11. **Cambio de día**: `fecha: Al día siguiente` (o `fecha: Martes`, `fecha: Una semana después`…) en su propia línea. Aparece un separador centrado en el chat, sin voz. Con `| 08:15` también cambia la hora: `fecha: Al día siguiente | 08:15`.
+
 ## Reglas importantes
 
 - Los **emojis** se ven en pantalla pero no se leen en voz alta: úsalos con naturalidad, como en un chat real.
-- **No** escribas acotaciones ni acciones entre paréntesis o corchetes (`(se ríe)`, `[suspira]`): se leerían en voz alta. Las únicas marcas válidas son `[audio]` y `[audio-solo]`.
+- **No** escribas acotaciones ni acciones entre paréntesis o corchetes (`(se ríe)`, `[suspira]`): se leerían en voz alta. Las únicas marcas válidas son `[audio]`, `[audio-solo]` y `[responde a Nombre]`.
 - **No** pongas comillas alrededor de los mensajes, ni guiones, ni números de línea, ni negritas, ni encabezados de Markdown dentro del guion.
 - **No** uses nombres de personaje con dos puntos, ni personajes llamados «evento», «confesionario» o «Titulo».
 - Las líneas en blanco no hacen nada: puedes usarlas para separar escenas.

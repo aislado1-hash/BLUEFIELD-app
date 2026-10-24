@@ -15,6 +15,7 @@ PROJECTS_ROOT = PUBLIC / "projects"; PROJECTS_ROOT.mkdir(parents=True, exist_ok=
 LIBRARY = PUBLIC / "library"; (LIBRARY / "assets").mkdir(parents=True, exist_ok=True)
 LIBRARY_JSON = LIBRARY / "characters.json"
 VOICES_JSON = LIBRARY / "voices.json"      # voces guardadas (nombre → Voice ID + velocidad)
+BRAND_JSON = LIBRARY / "brand.json"        # kit de marca del canal (logo, nombre, color, letra)
 RENDER_TMP = ROOT / ".render_tmp"
 SAFE_NAME = re.compile(r"^[A-Za-z0-9_.-]+$")
 
@@ -164,6 +165,40 @@ def audio_duration(path):
         return None
 
 
+VOICE_TARGET_DB = -19.0   # volumen medio al que se igualan todas las voces
+
+
+def normalize_voice(path):
+    """Iguala el volumen de un audio de voz (una sola vez por archivo): mide su volumen medio, lo sube o
+    baja hasta VOICE_TARGET_DB y pasa un limitador para que no sature. Se apunta en tts/normalized.json."""
+    exe = ffmpeg()
+    if not exe or not path.exists(): return
+    marks_fp = path.parent / "normalized.json"
+    try: marks = json.loads(marks_fp.read_text(encoding="utf-8"))
+    except Exception: marks = {}
+    if path.name in marks: return
+    try:
+        r = subprocess.run([exe, "-hide_banner", "-i", str(path), "-af", "volumedetect", "-f", "null", "-"],
+                           stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, encoding="utf-8", errors="replace", timeout=120)
+        m = re.search(r"mean_volume:\s*(-?[\d.]+)\s*dB", r.stderr)
+        if not m: return
+        gain = max(-20.0, min(20.0, VOICE_TARGET_DB - float(m.group(1))))
+        if abs(gain) >= 0.5:
+            tmp = path.with_name(path.stem + ".norm" + path.suffix)
+            codec = ["-c:a", "libmp3lame", "-b:a", "192k"] if path.suffix.lower() == ".mp3" else []
+            r = subprocess.run([exe, "-hide_banner", "-y", "-i", str(path), "-af", f"volume={gain:.2f}dB,alimiter=limit=0.89:level=false",
+                                "-ar", "44100", *codec, str(tmp)], stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=120)
+            if r.returncode != 0 or not tmp.exists() or tmp.stat().st_size < 256:
+                try: tmp.unlink()
+                except Exception: pass
+                return
+            os.replace(tmp, path)
+        marks[path.name] = round(gain, 2)
+        marks_fp.write_text(json.dumps(marks, ensure_ascii=False, indent=1), encoding="utf-8")
+    except Exception:
+        pass
+
+
 # ───────────────────────── render Remotion ─────────────────────────
 
 def public_path(rel):
@@ -186,6 +221,7 @@ def asset_refs(payload):
     refs.append(("sonido", payload.get("sound")))
     refs.append(("música de fondo", payload.get("music")))
     refs.append(("fondo", payload.get("bgImage")))
+    if (payload.get("brand") or {}).get("on"): refs.append(("logo del canal", payload["brand"].get("logo")))
     for c in payload.get("chars") or []: refs.append((f"imagen de {c.get('name', '?')}", c.get("image")))
     return refs
 
@@ -213,7 +249,7 @@ def build_render_public(payload, dest):
         target.parent.mkdir(parents=True, exist_ok=True)
         try: os.link(src, target)
         except Exception: shutil.copy2(src, target)
-    if payload.get("format") in ("top", "hist"):   # efectos de sonido incluidos con la app
+    if payload.get("format") in ("top", "hist") or (payload.get("brand") or {}).get("on"):   # efectos de sonido incluidos con la app
         sfx = dest / "sfx"; sfx.mkdir(exist_ok=True)
         for f in (SHARED / "sfx").glob("*.wav"):
             if not (sfx / f.name).exists(): shutil.copy2(f, sfx / f.name)
@@ -380,6 +416,40 @@ def library_save(char):
 
 # ───────────────────────── Voces guardadas ─────────────────────────
 
+# ───────────────────────── Kit de marca ─────────────────────────
+
+BRAND_FIELDS = {"name": "", "logo": "", "color": "#ffd166", "font": "", "watermark": True, "wmPos": "br", "wmOpacity": 70, "wmSize": 110, "intro": False, "outro": False}
+
+
+def brand_load():
+    try: data = json.loads(BRAND_JSON.read_text(encoding="utf-8"))
+    except Exception: data = {}
+    return {k: data.get(k, v) for k, v in BRAND_FIELDS.items()}
+
+
+def brand_save(payload):
+    data = brand_load()
+    for k, v in BRAND_FIELDS.items():
+        if k in (payload or {}): data[k] = type(v)(payload[k]) if not isinstance(v, bool) else bool(payload[k])
+    logo = str(data.get("logo") or "")
+    if logo.startswith("data:image/"):
+        header, b64 = logo.split(",", 1)
+        ext = EXT_BY_MIME.get(header[5:].split(";", 1)[0].lower())
+        if not ext: raise RuntimeError("Formato de imagen no compatible.")
+        raw = base64.b64decode(b64)
+        name = f"brand-{hashlib.sha1(raw).hexdigest()[:12]}.{ext}"
+        fp = LIBRARY / "assets" / name
+        if not fp.exists(): fp.write_bytes(raw)
+        data["logo"] = f"/library/assets/{name}"
+    elif logo and not logo.startswith("/library/assets/"):
+        data["logo"] = ""
+    data["name"] = data["name"][:80]
+    tmp = BRAND_JSON.with_suffix(".tmp")
+    tmp.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+    os.replace(tmp, BRAND_JSON)
+    return data
+
+
 def voices_load():
     try: return json.loads(VOICES_JSON.read_text(encoding="utf-8"))
     except Exception: return []
@@ -510,12 +580,13 @@ def ai33_get_task(task_id, api_key):
     raise first_error
 
 
-def ai33_tts_message(api_key, text, voice, speed, job, index, total, tts_dir, cache_key, existing_audio=None):
+def ai33_tts_message(api_key, text, voice, speed, job, index, total, tts_dir, cache_key, existing_audio=None, normalize=True):
     """Genera UN audio en AI33, espera a que termine, lo descarga y verifica su duración.
     No se pide el siguiente hasta que este está guardado (AI33 solo admite una tarea a la vez)."""
     web_dir = f"/projects/{tts_dir.parent.name}/tts"
     for candidate in (safe_existing_audio(existing_audio, tts_dir), tts_dir / f"message_{cache_key}.mp3"):
         if candidate is not None and candidate.exists():
+            if normalize: normalize_voice(candidate)
             duration = audio_duration(candidate)
             if duration and duration > 0:
                 job.update({"phase": "ready", "current": index + 1, "total": total, "percent": round(((index + 1) / total) * 100),
@@ -587,6 +658,7 @@ def ai33_tts_message(api_key, text, voice, speed, job, index, total, tts_dir, ca
             if not data or len(data) < 256:
                 time.sleep(1.5); continue
             final_path.write_bytes(data)
+            if normalize: normalize_voice(final_path)
             duration = audio_duration(final_path)
             if not duration or duration <= 0:
                 try: final_path.unlink()
@@ -621,7 +693,7 @@ def start_ai33_messages(payload):
                 if not spoken:   # línea solo con emojis: sin voz
                     res = {"lineIndex": i, "audio": None, "duration": 0, "cacheKey": key, "reused": True, "silent": True}
                 else:
-                    res = ai33_tts_message(api_key, spoken, voice_id, m.get("speed", 1), job, i, len(messages), tts_dir, key, m.get("existingAudio"))
+                    res = ai33_tts_message(api_key, spoken, voice_id, m.get("speed", 1), job, i, len(messages), tts_dir, key, m.get("existingAudio"), payload.get("normalize", True) is not False)
                 if m.get("lineIndex") is not None: res["lineIndex"] = int(m.get("lineIndex"))
                 if m.get("eventIndex") is not None: res["eventIndex"] = int(m.get("eventIndex"))
                 res["kind"] = str(kind)
@@ -721,6 +793,8 @@ class Handler(BaseHTTPRequestHandler):
             return
         if path == "/voices":
             self.send_json(200, {"ok": True, "voices": voices_load()}); return
+        if path == "/brand":
+            self.send_json(200, {"ok": True, "brand": brand_load()}); return
         if path == "/library":
             self.send_json(200, {"ok": True, "characters": library_load()}); return
         if len(parts) == 3 and parts[0] == "library" and parts[1] == "assets":
@@ -795,6 +869,8 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_json(200, {"ok": True, "path": str(d)}); return
             if self.path == "/export":
                 self.send_json(200, {"ok": True, "job": start_export(payload)}); return
+            if self.path == "/brand/save":
+                self.send_json(200, {"ok": True, "brand": brand_save(payload.get("brand"))}); return
             if self.path == "/voices/save":
                 self.send_json(200, {"ok": True, "voice": voices_save(payload)}); return
             if self.path == "/voices/delete":

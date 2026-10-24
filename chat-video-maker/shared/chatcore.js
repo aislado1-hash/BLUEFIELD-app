@@ -24,6 +24,9 @@
   const CONF_RE = /^confesionario\s*:\s*/i;   // «confesionario: Pepe: texto» → Pepe habla a cámara
   const VOICE_RE = /^\[\s*audio(\s*-\s*solo)?\s*\]\s*/i;   // «Pepe: [audio] texto» → nota de voz
   const REACT_RE = /\{\s*(?:reacci[oó]n(?:es)?|r)\s*:\s*([^}]*)\}\s*$/i;
+  const REPLY_RE = /^\[\s*(?:responde(?:\s+a)?|re)\s*:?\s*([^\]:]+?)\s*(?::\s*([^\]]+?)\s*)?\]\s*/i;   // «Pepe: [responde a Ana] texto»
+  const CLOCK_RE = /^hora\s*:\s*/i;                    // «hora: 23:47» → la hora del chat salta a esa hora
+  const DAY_RE = /^(?:fecha|d[ií]a)\s*:\s*/i;           // «fecha: Al día siguiente | 08:15» → separador de fecha
   const px = (n) => `${Math.round(Number(n) * 100) / 100}px`;
   const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
@@ -137,12 +140,18 @@
     return out;
   };
 
-  /** Hora falsa del mensaje: la «Hora del chat» + 1 minuto cada 20 s de vídeo. */
+  /** «23:47» → minutos del día (null si no es una hora). */
+  C.parseClock = (s) => {
+    const m = String(s || '').match(/(\d{1,2})[:.h](\d{2})/);
+    return m && Number(m[1]) < 24 && Number(m[2]) < 60 ? Number(m[1]) * 60 + Number(m[2]) : null;
+  };
+  C.clockText = (min) => { const t = ((Math.round(min) % 1440) + 1440) % 1440; return String(Math.floor(t / 60)).padStart(2, '0') + ':' + String(t % 60).padStart(2, '0'); };
+  /** Hora falsa del mensaje: la calculada en la línea de tiempo (avanza con el chat y salta con «hora:» / «fecha:»)
+   *  o, en proyectos antiguos, la «Hora del chat» + 1 minuto cada 20 s de vídeo. */
   C.messageClock = (p, e) => {
-    const m = String(C.fx(p).clock || '21:14').match(/^(\d{1,2}):(\d{2})/);
-    const base = m ? Number(m[1]) * 60 + Number(m[2]) : 21 * 60 + 14;
-    const t = (base + Math.floor((Number(e.visibleStart) || 0) / 20000)) % (24 * 60);
-    return String(Math.floor(t / 60)).padStart(2, '0') + ':' + String(t % 60).padStart(2, '0');
+    if (e.clock) return e.clock;
+    const base = C.parseClock(C.fx(p).clock);
+    return C.clockText((base == null ? 21 * 60 + 14 : base) + Math.floor((Number(e.visibleStart) || 0) / 20000));
   };
 
   /* ───────────────────────── Notas de voz ───────────────────────── */
@@ -209,7 +218,7 @@
       dim: !!(fx.speaker && f.speakingKey && !speaking),
       compact: !!e.hideAvatar,
       tail: !!(fx.tail && !e.hideAvatar),
-      meta: fx.details ? C.messageClock(p, e) : null,
+      meta: fx.details || e.showClock ? C.messageClock(p, e) : null,
     };
   };
 
@@ -268,9 +277,13 @@
    * completa en el punto del guion donde está escrito. Si se repite "Titulo inicial:" sin número,
    * se numera solo (2, 3…) según el orden.
    * Reacciones: al final del mensaje → "Pepe: Golazo {r: 😂3 🔥}"  o  "{reacciones: 😂 🔥}"
+   * Respuesta citada: "Pepe: [responde a Ana] texto" (cita el último mensaje de Ana) o
+   *   "Pepe: [responde a Ana: cargador] texto" (el último de Ana que contiene «cargador»).
+   * Hora: "hora: 23:47" (desde ahí la hora de los mensajes sigue desde las 23:47).
+   * Fecha: "fecha: Al día siguiente" o "fecha: Martes | 08:15" (separador en el chat y, opcional, nueva hora).
    */
   C.parseScript = (script, chars) => {
-    const out = { initialTitle: '', titles: [], messages: [], scriptEvents: [], unknownNames: [] };
+    const out = { initialTitle: '', titles: [], messages: [], scriptEvents: [], marks: [], unknownNames: [] };
     let idx = 0, order = 0;
     for (const raw of String(script || '').split('\n')) {
       const line = raw.trim();
@@ -280,6 +293,17 @@
       if (tm) {
         const text = C.stripQuotes(line.replace(TITLE_RE, ''));
         if (text) out.titles.push({ number: tm[1] ? parseInt(tm[1], 10) : out.titles.length + 1, text, afterMessage: idx, order });
+        continue;
+      }
+      if (CLOCK_RE.test(line)) {
+        const min = C.parseClock(line.replace(CLOCK_RE, ''));
+        if (min != null) out.marks.push({ type: 'clock', afterMessage: idx, order, min });
+        continue;
+      }
+      if (DAY_RE.test(line)) {
+        const [label, time] = line.replace(DAY_RE, '').split('|').map((x) => x.trim());
+        const text = C.stripQuotes(label), min = C.parseClock(time);
+        if (text || min != null) out.marks.push({ type: 'day', afterMessage: idx, order, text, min });
         continue;
       }
       if (EVENT_RE.test(line)) {
@@ -295,16 +319,41 @@
       const c = C.findChar(chars, name);
       if (!c) { if (name && name.length <= 40 && !out.unknownNames.includes(name)) out.unknownNames.push(name); continue; }
       let text = body.slice(p + 1).trim();
-      let voiceNote = null;
-      const vm = text.match(VOICE_RE);
-      if (vm) { voiceNote = vm[1] ? 'solo' : 'transcript'; text = text.replace(VOICE_RE, '').trim(); }
+      let voiceNote = null, reply = null;
+      for (let k = 0; k < 2; k++) {   // [audio] y [responde a …] en cualquier orden
+        const vm = text.match(VOICE_RE);
+        if (vm) { voiceNote = vm[1] ? 'solo' : 'transcript'; text = text.replace(VOICE_RE, '').trim(); }
+        const qm = text.match(REPLY_RE);
+        if (qm) { reply = C.findReply(out.messages, chars, qm[1], qm[2]); text = text.replace(REPLY_RE, '').trim(); }
+      }
       let reactions = [];
       const rm = text.match(REACT_RE);
       if (rm) { reactions = C.parseReactions(rm[1]); text = text.replace(REACT_RE, '').trim(); }
-      out.messages.push({ char: c, text, reactions, voiceNote, confession, lineIndex: idx++ });
+      out.messages.push({ char: c, text, reactions, voiceNote, confession, reply, lineIndex: idx++ });
     }
     out.initialTitle = out.titles.length ? out.titles[0].text : '';
     return out;
+  };
+
+  /** Mensaje citado por una respuesta: el último de esa persona (que contenga el trozo, si se indica).
+   *  Si el nombre no es un personaje, se busca el trozo en cualquier mensaje anterior. */
+  C.findReply = (messages, chars, who, part) => {
+    const norm = (x) => String(x || '').replace(/\*/g, '').toLowerCase();
+    const c = C.findChar(chars, who);
+    const frag = norm(c ? part : [who, part].filter(Boolean).join(': '));
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const m = messages[i];
+      if (c && m.char !== c) continue;
+      if (frag && !norm(m.text).includes(frag)) continue;
+      return { char: m.char, name: m.char.name, text: m.text, voiceNote: m.voiceNote, lineIndex: m.lineIndex };
+    }
+    return c ? { char: c, name: c.name, text: C.stripQuotes(part || ''), voiceNote: null, lineIndex: -1 } : null;
+  };
+  /** Texto corto de la cita (una o dos líneas). */
+  C.quoteText = (q) => {
+    if (q.voiceNote && !q.text) return '🎤 Nota de voz';
+    const t = String(q.text || '').replace(/\*/g, '').replace(/\s+/g, ' ').trim();
+    return (q.voiceNote ? '🎤 ' : '') + (t.length > 70 ? t.slice(0, 68).trimEnd() + '…' : t);
   };
 
   /** Nombre visible de un título: "Título inicial", "Título inicial 2"… */
@@ -451,6 +500,7 @@
       byAfter.get(k).push(item);
     };
     parsed.titles.forEach((title, ti) => place(title.afterMessage, { title, ti, order: title.order }));
+    parsed.marks.forEach((mark, mi) => place(mark.afterMessage, { mark, mi, order: mark.order }));
     groupEvents.forEach((ev, gi) => place(ev.afterMessage, { ev, gi, order: Number(ev.order) || Infinity }));
     byAfter.forEach((list) => list.sort((a, b) => a.order - b.order));
 
@@ -472,6 +522,19 @@
       cursor = end;
     };
 
+    // Hora del chat: empieza en «Hora del chat» y avanza 1 minuto cada 20 s; «hora:» y «fecha:» la cambian.
+    const base = C.parseClock(C.fx(p).clock);
+    let clockMin = base == null ? 21 * 60 + 14 : base, clockAt = 0;
+    const showClock = parsed.marks.length > 0;
+    const pushMark = ({ mark, mi }) => {
+      if (mark.type === 'day' && mark.text) {
+        const start = cursor + d, end = start + 1600;
+        out.push({ kind: 'system', key: 'day-' + mi, text: mark.text, event: { type: 'day', text: mark.text }, start, typingStart: start, visibleStart: start, end, audio: null, audioDuration: 0 });
+        cursor = end;
+      }
+      if (mark.min != null) { clockMin = mark.min; clockAt = cursor; }
+    };
+
     const audioFor = C.audioIndex(p.dialogueMessages);
     // Lados de las burbujas: por defecto cambian de lado cada vez que cambia quien habla
     // (mensajes seguidos del mismo personaje se quedan en su lado). Con sideMode 'fixed', cada personaje usa su propio lado.
@@ -481,7 +544,7 @@
     let missingAudio = 0;
 
     for (let i = 0; i <= parsed.messages.length; i++) {
-      (byAfter.get(i) || []).forEach((x) => (x.title ? pushTitle(x) : pushSystem(x)));
+      (byAfter.get(i) || []).forEach((x) => (x.title ? pushTitle(x) : x.mark ? pushMark(x) : pushSystem(x)));
       if (i === parsed.messages.length) break;
       const m = parsed.messages[i];
       // Solo se guarda el lado del turno; el personaje sigue siendo el objeto real (así los cambios
@@ -506,7 +569,8 @@
         reactAt = Math.max(visibleStart + 500, end - 600);
         end = Math.max(end, reactAt + 700);
       }
-      out.push({ kind: 'message', key: 'msg-' + m.lineIndex, char: m.char, side, text: m.text, reactions: m.reactions, reactAt, lineIndex: m.lineIndex, voiceNote: m.voiceNote, confession: m.confession, peaks: dm && Array.isArray(dm.peaks) ? dm.peaks : null, start, typingStart: start, visibleStart, end, audio: secs ? dm.audio : null, audioDuration: secs, audioMissing });
+      const clock = C.clockText(clockMin + Math.floor((visibleStart - clockAt) / 20000));
+      out.push({ kind: 'message', key: 'msg-' + m.lineIndex, char: m.char, side, text: m.text, reactions: m.reactions, reactAt, lineIndex: m.lineIndex, voiceNote: m.voiceNote, confession: m.confession, reply: m.reply, clock, showClock, peaks: dm && Array.isArray(dm.peaks) ? dm.peaks : null, start, typingStart: start, visibleStart, end, audio: secs ? dm.audio : null, audioDuration: secs, audioMissing });
       cursor = end;
     }
     const totalMs = out.length ? out[out.length - 1].end : 1000;
@@ -822,6 +886,18 @@
     vnBar: (c, b) => { const s = bubbleScaleOf(c); return { width: px(6 * s), height: px(56 * s * b.h), borderRadius: px(3 * s), background: c.textColor || '#fff', opacity: b.filled ? '1' : '0.42' }; },
     vnTime: (p, c) => { const s = bubbleScaleOf(c); return { fontFamily: fontOf(p), fontSize: px(28 * s), fontWeight: '800', lineHeight: '1', minWidth: px(62 * s), fontVariantNumeric: 'tabular-nums', opacity: '0.92' }; },
     vnTranscript: (p, c) => { const s = bubbleScaleOf(c); return { fontSize: px(34 * s), fontStyle: 'italic', fontWeight: '600', lineHeight: '1.18', opacity: '0.92', marginTop: px(12 * s), whiteSpace: 'pre-wrap' }; },
+    /** Respuesta citada: cajita con el nombre y el texto del mensaje al que responde. */
+    quote: (p, c, q) => {
+      const s = bubbleScaleOf(c), col = q.char ? C.solidColor(q.char.color) : '#ffffff';
+      return { display: 'block', background: 'rgba(0,0,0,.24)', borderLeft: `${px(7 * s)} solid ${mixHex(col, '#ffffff', 0.3)}`, borderRadius: px(12 * s), padding: `${px(8 * s)} ${px(16 * s)} ${px(10 * s)}`, marginBottom: px(12 * s), WebkitTextStroke: '0px', textShadow: 'none', boxSizing: 'border-box', maxWidth: '100%' };
+    },
+    quoteName: (p, c, q) => ({ fontSize: px(27 * bubbleScaleOf(c)), fontWeight: '800', lineHeight: '1.2', color: mixHex(q.char ? C.solidColor(q.char.color) : '#ffffff', '#ffffff', 0.55) }),
+    quoteText: (p, c) => ({ fontSize: px(31 * bubbleScaleOf(c)), fontWeight: '600', lineHeight: '1.2', opacity: '0.82', marginTop: px(2 * bubbleScaleOf(c)) }),
+    /** Separador de fecha («Al día siguiente», «Martes»…), como en las apps de chat. */
+    dayChip: (p) => {
+      const t = C.theme(p);
+      return { display: 'inline-block', background: t.systemBg === 'transparent' ? 'rgba(255,255,255,.12)' : t.systemBg, color: t.headerText, padding: '10px 30px', borderRadius: '14px', fontFamily: fontOf(p), fontSize: px(clamp(Number(p.eventSize) || 28, 14, 96)), fontWeight: '800', letterSpacing: '1px', textTransform: 'uppercase', boxShadow: '0 4px 12px rgba(0,0,0,.25)' };
+    },
     systemWrap: () => ({ display: 'flex', justifyContent: 'center', width: '100%', margin: '18px 0 24px' }),
     systemText: (p) => {
       const t = C.theme(p);

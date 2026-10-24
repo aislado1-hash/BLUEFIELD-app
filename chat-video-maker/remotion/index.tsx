@@ -20,18 +20,19 @@ const asset = (src?: string | null): string | undefined => {
   return staticFile(src.replace(/\\/g, '/').replace(/^\/+/, ''));
 };
 
-/** Carga la letra Nunito («Texto limpio») antes de renderizar; si no hay internet, sigue con la de respaldo. */
-const FontLoader: React.FC = () => {
+/** Carga una letra de Google Fonts (Nunito de «Texto limpio» o la del kit de marca) antes de renderizar;
+ *  si no hay internet, sigue con la de respaldo. */
+const FontLoader: React.FC<{url?: string; family?: string}> = ({url = C.FX_FONT_URL, family = 'Nunito'}) => {
   const [handle] = React.useState(() => delayRender('Cargando tipografía'));
   React.useEffect(() => {
     let done = false;
     const finish = () => { if (!done) { done = true; continueRender(handle); } };
     const timer = setTimeout(finish, 5000);
     const link = document.createElement('link');
-    link.rel = 'stylesheet'; link.href = C.FX_FONT_URL;
+    link.rel = 'stylesheet'; link.href = url;
     link.onload = () => {
       const fonts = (document as any).fonts;
-      Promise.all(['700', '800', '900'].map((w) => fonts.load(`${w} 52px Nunito`))).catch(() => null).finally(() => { clearTimeout(timer); finish(); });
+      Promise.all(['400', '700', '800', '900'].map((w) => fonts.load(`${w} 52px "${family}"`))).catch(() => null).finally(() => { clearTimeout(timer); finish(); });
     };
     link.onerror = () => { clearTimeout(timer); finish(); };
     document.head.appendChild(link);
@@ -78,6 +79,12 @@ const Message: React.FC<{p: Project; f: any; e: any; isLast: boolean; ms: number
       <div style={C.styles.side(c)}>
         <div style={C.styles.bubble(p, c, st)}>
           {st.tail ? <div style={C.styles.tail(p, c)} /> : null}
+          {e.reply ? (
+            <div style={C.styles.quote(p, c, e.reply)}>
+              <div style={C.styles.quoteName(p, c, e.reply)}>{e.reply.name}</div>
+              <div style={C.styles.quoteText(p, c)}>{C.quoteText(e.reply)}</div>
+            </div>
+          ) : null}
           {e.voiceNote ? <VoiceNote p={p} e={e} c={c} ms={ms} /> : <Rich text={e.text} />}
           {st.meta ? <span style={C.styles.meta(p, c)}>{st.meta}<span style={C.styles.ticks(c)}>✓✓</span></span> : null}
         </div>
@@ -161,7 +168,9 @@ const ChatFrame: React.FC<{project: Project; events: any[]; ms: number}> = ({pro
                   {f.shown.map((e: any) =>
                     e.kind === 'system' ? (
                       <div key={e.key} style={C.styles.systemWrap()}>
-                        <div style={C.styles.systemText(project)}>{C.systemText(e.text, project)}</div>
+                        {e.event && e.event.type === 'day'
+                          ? <div style={C.styles.dayChip(project)}>{e.text}</div>
+                          : <div style={C.styles.systemText(project)}>{C.systemText(e.text, project)}</div>}
                       </div>
                     ) : (
                       <Message key={e.key} p={project} f={f} e={e} isLast={e === f.lastMessage} ms={ms} />
@@ -215,9 +224,48 @@ const FormatVideo: React.FC<{project: Project}> = ({project}) => {
   );
 };
 
+/** Duración (s) del vídeo sin la presentación ni el cierre del canal. */
+const innerSeconds = (project: Project) => (F.isFormat(project) ? F.plan(project).total : C.buildEvents(project).totalMs / 1000);
+
+/** Presentación o cierre del canal (kit de marca). */
+const BrandCard: React.FC<{project: Project; phase: 'intro' | 'outro'}> = ({project, phase}) => {
+  const frame = useCurrentFrame();
+  const {fps, width} = useVideoConfig();
+  const scale = width / C.canvasSize(project).w;
+  return <AbsoluteFill style={{background: '#08090c'}}><div style={C.styles.canvas(project, scale)}>{toReact(F.brandCard(project, phase, (frame / fps) * 1000))}</div></AbsoluteFill>;
+};
+
+const Watermark: React.FC<{project: Project}> = ({project}) => {
+  const {width} = useVideoConfig();
+  const wm = F.watermark(project);
+  if (!wm) return null;
+  return <AbsoluteFill style={{pointerEvents: 'none'}}><div style={C.styles.canvas(project, width / C.canvasSize(project).w)}>{toReact(wm)}</div></AbsoluteFill>;
+};
+
+/** Vídeo completo: presentación del canal (opcional) → chat / Top / Historia (con marca de agua) → cierre (opcional). */
 const ChatVideo: React.FC<Project> = (project) => {
-  if (F.isFormat(project)) return <FormatVideo project={project} />;
-  return <ChatOnly {...project} />;
+  const {fps} = useVideoConfig();
+  const B = F.brandTiming(project);
+  const fontUrl = F.brandFontUrl(project);
+  const intro = Math.round(B.intro * fps), body = Math.max(1, Math.ceil(innerSeconds(project) * fps)), outro = Math.round(B.outro * fps);
+  const content = F.isFormat(project) ? <FormatVideo project={project} /> : <ChatOnly {...project} />;
+  if (!F.brand(project)) return content;
+  return (
+    <AbsoluteFill style={{background: '#000'}}>
+      {fontUrl ? <FontLoader url={fontUrl} family={F.brand(project).font} /> : null}
+      {intro ? (
+        <Sequence durationInFrames={intro}>
+          <BrandCard project={project} phase="intro" />
+          <Audio src={staticFile('sfx/whoosh.wav')} volume={0.6} />
+        </Sequence>
+      ) : null}
+      <Sequence from={intro} durationInFrames={body}>
+        {content}
+        <Watermark project={project} />
+      </Sequence>
+      {outro ? <Sequence from={intro + body} durationInFrames={outro}><BrandCard project={project} phase="outro" /></Sequence> : null}
+    </AbsoluteFill>
+  );
 };
 
 const ChatOnly: React.FC<Project> = (project) => {
@@ -293,10 +341,10 @@ export const RemotionRoot: React.FC = () => (
       defaultProps={EMPTY}
       calculateMetadata={({props}) => {
         const project = props as Project;
-        const totalMs = F.isFormat(project) ? F.plan(project).total * 1000 : C.buildEvents(project).totalMs;
         const fps = Number(project.fps) || 30;
+        const B = F.brandTiming(project);
         return {
-          durationInFrames: Math.max(1, Math.ceil((totalMs / 1000) * fps)),
+          durationInFrames: Math.round(B.intro * fps) + Math.max(1, Math.ceil(innerSeconds(project) * fps)) + Math.round(B.outro * fps),
           fps,
           width: Number(project.videoWidth) || 1920,
           height: Number(project.videoHeight) || 1080,
