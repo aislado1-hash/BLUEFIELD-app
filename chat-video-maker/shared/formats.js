@@ -51,7 +51,8 @@
         const item = { rank: Number.isFinite(rank) ? rank : out.items.length + 1, name: strip(parts.shift() || '?'), emoji: '', stats: [], fact: '', lines: [] };
         for (const x of parts) {
           const st = x.match(/^(.+?)\s+(\d{1,2})(?:\s*\/\s*10)?$/);
-          if (!item.emoji && !/[\p{L}\p{N}]/u.test(x)) item.emoji = x;
+          if (/^dato\s*:/i.test(x)) item.fact = x.replace(/^dato\s*:\s*/i, '');   // el dato, aunque acabe en número
+          else if (!item.emoji && !/[\p{L}\p{N}]/u.test(x)) item.emoji = x;
           else if (st) item.stats.push([st[1].trim(), Math.max(0, Math.min(10, Number(st[2])))]);
           else item.fact = x.replace(/^dato\s*:\s*/i, '');
         }
