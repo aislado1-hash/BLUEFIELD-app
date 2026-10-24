@@ -3,8 +3,11 @@ import {Composition, Img, Sequence, AbsoluteFill, useCurrentFrame, useVideoConfi
 import {Audio} from '@remotion/media';
 // Núcleo compartido con la vista previa: guion, línea de tiempo, plantillas y estilos.
 import '../shared/chatcore.js';
+// Formatos «Top» e «Historia»: guion, tiempos y escenas compartidos con la vista previa.
+import '../shared/formats.js';
 
 const C: any = (globalThis as any).ChatCore;
+const F: any = (globalThis as any).ChatFormats;
 
 export type Project = Record<string, any> & {
   videoWidth?: number; videoHeight?: number; fps: number; script: string; chars: any[];
@@ -179,7 +182,45 @@ const ChatFrame: React.FC<{project: Project; events: any[]; ms: number}> = ({pro
   );
 };
 
+/** Árbol de nodos del núcleo de formatos ({t, s, c, src}) → elementos de React. */
+const toReact = (n: any, key: number | string = 0): React.ReactNode => {
+  if (n == null) return null;
+  if (typeof n === 'string') return n;
+  if (n.t === 'img') return <Img key={key} src={asset(n.src) || C.BLANK_IMG} style={n.s} />;
+  return React.createElement(n.t, {key, style: n.s}, ...(n.c || []).map((k: any, i: number) => toReact(k, i)));
+};
+
+/** Formatos «Top / Ranking» e «Historia narrada»: escena, voces del narrador, efectos y música. */
+const FormatVideo: React.FC<{project: Project}> = ({project}) => {
+  const frame = useCurrentFrame();
+  const {fps, width} = useVideoConfig();
+  const ms = (frame / fps) * 1000;
+  const plan = F.plan(project);
+  const scale = width / C.canvasSize(project).w;
+  const music = asset(project.music);
+  const toFrame = (secs: number) => Math.max(0, Math.round(secs * fps));
+  const framesOf = (secs: number) => Math.max(1, Math.ceil(secs * fps));
+  return (
+    <AbsoluteFill style={{background: '#000', overflow: 'hidden'}}>
+      <FontLoader />
+      <div style={C.styles.canvas(project, scale)}>{toReact(F.scene(project, plan, ms))}</div>
+      {music ? <Audio src={music} loop loopVolumeCurveBehavior="extend" volume={(f: number) => C.musicVolume(project, plan.voiceSegs, (f / fps) * 1000, plan.total * 1000)} /> : null}
+      {plan.lines.filter((l: any) => l.audio).map((l: any, i: number) => (
+        <Sequence key={`v-${i}`} from={toFrame(l.abs)} durationInFrames={framesOf(l.dur)}><Audio src={asset(l.audio)!} /></Sequence>
+      ))}
+      {plan.sfx.map((x: any, i: number) => (
+        <Sequence key={`s-${i}`} from={toFrame(x.at)} durationInFrames={framesOf(x.dur)}><Audio src={asset(x.src)!} volume={x.vol} /></Sequence>
+      ))}
+    </AbsoluteFill>
+  );
+};
+
 const ChatVideo: React.FC<Project> = (project) => {
+  if (F.isFormat(project)) return <FormatVideo project={project} />;
+  return <ChatOnly {...project} />;
+};
+
+const ChatOnly: React.FC<Project> = (project) => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
   const {events, totalMs} = C.buildEvents(project);
@@ -252,7 +293,7 @@ export const RemotionRoot: React.FC = () => (
       defaultProps={EMPTY}
       calculateMetadata={({props}) => {
         const project = props as Project;
-        const {totalMs} = C.buildEvents(project);
+        const totalMs = F.isFormat(project) ? F.plan(project).total * 1000 : C.buildEvents(project).totalMs;
         const fps = Number(project.fps) || 30;
         return {
           durationInFrames: Math.max(1, Math.ceil((totalMs / 1000) * fps)),

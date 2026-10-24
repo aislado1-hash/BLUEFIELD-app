@@ -179,6 +179,10 @@ def asset_refs(payload):
     for ev in payload.get("groupEvents") or []: refs.append(("audio de evento", ev.get("audio")))
     refs.append(("audio del título inicial", payload.get("initialTitleAudio")))
     for t in payload.get("titleAudios") or []: refs.append(("audio de título", t.get("audio")))
+    # Formatos Top / Historia
+    for a in payload.get("fmtAudios") or []: refs.append(("audio del narrador", (a or {}).get("audio")))
+    for key, url in (payload.get("fmtImages") or {}).items(): refs.append((f"foto «{key.split(':', 1)[-1]}»", url))
+    refs.append(("foto del narrador", (payload.get("hist") or {}).get("image")))
     refs.append(("sonido", payload.get("sound")))
     refs.append(("música de fondo", payload.get("music")))
     refs.append(("fondo", payload.get("bgImage")))
@@ -209,6 +213,10 @@ def build_render_public(payload, dest):
         target.parent.mkdir(parents=True, exist_ok=True)
         try: os.link(src, target)
         except Exception: shutil.copy2(src, target)
+    if payload.get("format") in ("top", "hist"):   # efectos de sonido incluidos con la app
+        sfx = dest / "sfx"; sfx.mkdir(exist_ok=True)
+        for f in (SHARED / "sfx").glob("*.wav"):
+            if not (sfx / f.name).exists(): shutil.copy2(f, sfx / f.name)
     return dest
 
 
@@ -686,8 +694,13 @@ class Handler(BaseHTTPRequestHandler):
                     html = html.replace("</head>", f"<script>window.__PROJECT_DATA__={blob};</script></head>", 1)
                 except Exception: pass
             self.send_bytes(200, "text/html; charset=utf-8", html.encode("utf-8")); return
-        if path == "/shared/chatcore.js":
-            self.send_file(SHARED / "chatcore.js", "text/javascript; charset=utf-8"); return
+        if path in ("/shared/chatcore.js", "/shared/formats.js"):
+            self.send_file(SHARED / path.rsplit("/", 1)[1], "text/javascript; charset=utf-8"); return
+        if path.startswith("/sfx/"):   # efectos de sonido incluidos (Top / Historia)
+            name = urllib.parse.unquote(path[5:])
+            if not SAFE_NAME.match(name) or name.startswith("."):
+                self.send_bytes(400, "text/plain", b"Bad name"); return
+            self.send_file(SHARED / "sfx" / name, "audio/wav"); return
         if path == "/projects":
             items = []
             for d in sorted([x for x in PROJECTS_ROOT.iterdir() if x.is_dir()], key=lambda x: x.stat().st_mtime, reverse=True):
@@ -769,9 +782,9 @@ class Handler(BaseHTTPRequestHandler):
             if self.path in ("/projects/upload-asset", "/projects/upload-background"):
                 slug = str(payload.get("projectSlug") or "").strip()
                 kind = str(payload.get("kind") or "background")
-                if kind not in ("background", "char", "sound", "music"): raise RuntimeError("Tipo de archivo no válido.")
+                if kind not in ("background", "char", "sound", "music", "photo"): raise RuntimeError("Tipo de archivo no válido.")
                 data = str(payload.get("data") or "")
-                if kind in ("background", "char") and not data.startswith("data:image/"): raise RuntimeError("La imagen no es válida.")
+                if kind in ("background", "char", "photo") and not data.startswith("data:image/"): raise RuntimeError("La imagen no es válida.")
                 if kind in ("sound", "music") and not data.startswith("data:audio/"): raise RuntimeError("El audio no es válido.")
                 self.send_json(200, {"ok": True, "url": store_data_url(slug, data, kind)}); return
             if self.path == "/projects/copy-asset":

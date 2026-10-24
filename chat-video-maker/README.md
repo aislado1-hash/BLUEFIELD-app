@@ -49,6 +49,10 @@ evento: María cambió el título del grupo a Viaje a Madrid
 
 ## Funciones principales
 
+- **Pestañas de formato** (arriba del panel): **💬 Chat de grupo**, **🏆 Top / Ranking** y **📜 Historia narrada**. Cada proyecto recuerda su pestaña y el guion de cada formato se guarda aparte; voces de AI33, música, exportación, «Generar todo» y el aviso de 10 s sirven para los tres.
+  - **🏆 Top / Ranking:** cuenta atrás de puestos con número gigante, foto (o emoji) de cada puesto, estadísticas que se rellenan, dato curioso, escalera lateral de puestos, redoble antes del número 1 con corona y confeti, y narrador con subtítulo palabra a palabra. Guion: `Titulo:`, `intro:`, `puesto: 5 | Nombre | 🐕 | Inteligencia 8 | Dato: …`, `narrador:`, `redoble:`, `final:`. Prompt para la IA: `PROMPT_TOP.md`.
+  - **📜 Historia narrada:** el narrador (con su foto, color y voz, o un personaje guardado) cuenta una historia con fotos tipo polaroid con zoom lento, rótulo de lugar y fecha, filtros (sepia, bn, antigua) y capítulos. Guion: `Titulo:`, `intro:`, `capitulo:`, `foto: Rótulo | sepia`, la narración debajo, `final:`. Prompt para la IA: `PROMPT_HISTORIA.md`.
+  - El apartado **🖼️ Fotos** lee el guion y pide una foto por cada puesto o escena. Los efectos de sonido (whoosh, redoble, fanfarria) están en `shared/sfx/` y se pueden sustituir por otros con el mismo nombre.
 - **Aviso al terminar los audios:** cuando acaban de generarse las voces (mensajes o eventos + título) suena un aviso y aparece una tarjeta con cuenta atrás. Si no pulsas **✕ Apagar aviso** (o Esc) en 10 s, se genera el MP4 solo. **🎬 Generar ya** lo lanza al momento. Se desactiva con la casilla de *05 · Exportar vídeo*.
 - **Formato vertical 9:16** (1080×1920 / 720×1280) para TikTok, Reels y Shorts, además de horizontal 16:9. Se elige en *05 · Exportar vídeo*.
 - **Plantillas de estilo:** Clásico, WhatsApp, Telegram, Instagram DM y Discord (*00 · Estilo y cabecera*).
